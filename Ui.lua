@@ -382,8 +382,8 @@ Credit.Parent = MF
 
 -- Notification system
 local NotificationContainer = Instance.new("Frame")
-NotificationContainer.Size = UDim2.new(0, 320, 1, -20)
-NotificationContainer.Position = UDim2.new(1, -330, 0, 10)
+NotificationContainer.Size = UDim2.new(0, 280, 1, -20)
+NotificationContainer.Position = UDim2.new(1, -290, 0, 10)
 NotificationContainer.BackgroundTransparency = 1
 NotificationContainer.ZIndex = 500
 NotificationContainer.Parent = G
@@ -410,68 +410,124 @@ local function CreateNotification(message, duration)
 			task.wait(0.1)
 			for i, notif in ipairs(activeNotifications) do
 				TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-					Position = UDim2.new(0, 0, 0, (i-1) * 90)
+					Position = UDim2.new(0, 0, 0, (i-1) * 72)
 				}):Play()
 			end
 		end
 	end
 	
-	-- Create notification frame
-	local Notif = Instance.new("Frame")
-	Notif.Size = UDim2.new(1, 0, 0, 80)
-	Notif.Position = UDim2.new(1, 20, 0, #activeNotifications * 90)
+	-- Create notification button (clickable)
+	local Notif = Instance.new("TextButton")
+	Notif.Size = UDim2.new(1, 0, 0, 65)
+	Notif.Position = UDim2.new(1, 20, 0, #activeNotifications * 72)
 	Notif.BackgroundColor3 = Themes[CT].accent2
 	Notif.BorderSizePixel = 0
+	Notif.AutoButtonColor = false
+	Notif.Text = ""
 	Notif.ZIndex = 501
 	Notif.Parent = NotificationContainer
 	
-	Instance.new("UICorner", Notif).CornerRadius = UDim.new(0, 12)
+	Instance.new("UICorner", Notif).CornerRadius = UDim.new(0, 10)
 	
+	-- Gradient background
+	local Gradient = Instance.new("UIGradient")
+	Gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Themes[CT].accent2),
+		ColorSequenceKeypoint.new(1, Color3.new(
+			math.min(Themes[CT].accent2.R * 1.15, 1),
+			math.min(Themes[CT].accent2.G * 1.15, 1),
+			math.min(Themes[CT].accent2.B * 1.15, 1)
+		))
+	}
+	Gradient.Rotation = 45
+	Gradient.Parent = Notif
+	
+	-- Glowing border
 	local NotifStroke = Instance.new("UIStroke")
-	NotifStroke.Thickness = 2
-	NotifStroke.Color = Color3.fromRGB(100, 200, 255)
+	NotifStroke.Thickness = 1.5
 	NotifStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	NotifStroke.Transparency = 0.5
 	NotifStroke.Parent = Notif
+	
+	-- Animate border color
+	task.spawn(function()
+		while Notif and Notif.Parent do
+			for i = 0, 1, 0.02 do
+				if not Notif or not Notif.Parent then break end
+				pcall(function()
+					NotifStroke.Color = Color3.fromHSV(i, 0.6, 1)
+				end)
+				task.wait(0.05)
+			end
+		end
+	end)
+	
+	-- Icon container
+	local IconBg = Instance.new("Frame")
+	IconBg.Size = UDim2.new(0, 40, 0, 40)
+	IconBg.Position = UDim2.new(0, 8, 0.5, -20)
+	IconBg.BackgroundColor3 = Themes[CT].accent
+	IconBg.BorderSizePixel = 0
+	IconBg.ZIndex = 502
+	IconBg.Parent = Notif
+	
+	Instance.new("UICorner", IconBg).CornerRadius = UDim.new(0.3, 0)
 	
 	-- Icon
 	local Icon = Instance.new("TextLabel")
-	Icon.Size = UDim2.new(0, 50, 1, 0)
-	Icon.Position = UDim2.new(0, 0, 0, 0)
+	Icon.Size = UDim2.new(1, 0, 1, 0)
 	Icon.BackgroundTransparency = 1
 	Icon.Text = "✨"
 	Icon.TextColor3 = Themes[CT].text
 	Icon.Font = Enum.Font.GothamBold
-	Icon.TextSize = 28
-	Icon.ZIndex = 502
-	Icon.Parent = Notif
+	Icon.TextSize = 22
+	Icon.ZIndex = 503
+	Icon.Parent = IconBg
 	
 	-- Message
 	local Msg = Instance.new("TextLabel")
-	Msg.Size = UDim2.new(1, -60, 1, -20)
-	Msg.Position = UDim2.new(0, 55, 0, 10)
+	Msg.Size = UDim2.new(1, -65, 1, -20)
+	Msg.Position = UDim2.new(0, 55, 0, 5)
 	Msg.BackgroundTransparency = 1
 	Msg.Text = message
 	Msg.TextColor3 = Themes[CT].text
 	Msg.Font = Enum.Font.Gotham
-	Msg.TextSize = 14
+	Msg.TextSize = 13
 	Msg.TextWrapped = true
 	Msg.TextXAlignment = Enum.TextXAlignment.Left
-	Msg.TextYAlignment = Enum.TextYAlignment.Center
+	Msg.TextYAlignment = Enum.TextYAlignment.Top
 	Msg.ZIndex = 502
 	Msg.Parent = Notif
 	
-	-- Progress bar
+	-- Close button (X)
+	local CloseBtn = Instance.new("TextButton")
+	CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+	CloseBtn.Position = UDim2.new(1, -25, 0, 5)
+	CloseBtn.BackgroundTransparency = 0.3
+	CloseBtn.BackgroundColor3 = Themes[CT].accent
+	CloseBtn.Text = "×"
+	CloseBtn.TextColor3 = Themes[CT].text
+	CloseBtn.Font = Enum.Font.GothamBold
+	CloseBtn.TextSize = 16
+	CloseBtn.BorderSizePixel = 0
+	CloseBtn.AutoButtonColor = false
+	CloseBtn.ZIndex = 504
+	CloseBtn.Parent = Notif
+	
+	Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0.3, 0)
+	
+	-- Progress bar background
 	local ProgressBg = Instance.new("Frame")
-	ProgressBg.Size = UDim2.new(1, -20, 0, 3)
-	ProgressBg.Position = UDim2.new(0, 10, 1, -8)
+	ProgressBg.Size = UDim2.new(1, -16, 0, 2.5)
+	ProgressBg.Position = UDim2.new(0, 8, 1, -7)
 	ProgressBg.BackgroundColor3 = Themes[CT].accent
+	ProgressBg.BackgroundTransparency = 0.5
 	ProgressBg.BorderSizePixel = 0
 	ProgressBg.ZIndex = 502
 	ProgressBg.Parent = Notif
 	
 	Instance.new("UICorner", ProgressBg).CornerRadius = UDim.new(1, 0)
 	
+	-- Progress bar
 	local Progress = Instance.new("Frame")
 	Progress.Size = UDim2.new(1, 0, 1, 0)
 	Progress.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
@@ -481,12 +537,25 @@ local function CreateNotification(message, duration)
 	
 	Instance.new("UICorner", Progress).CornerRadius = UDim.new(1, 0)
 	
+	-- Add shadow effect
+	local Shadow = Instance.new("ImageLabel")
+	Shadow.Size = UDim2.new(1, 20, 1, 20)
+	Shadow.Position = UDim2.new(0, -10, 0, -10)
+	Shadow.BackgroundTransparency = 1
+	Shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+	Shadow.ImageColor3 = Color3.new(0, 0, 0)
+	Shadow.ImageTransparency = 0.7
+	Shadow.ScaleType = Enum.ScaleType.Slice
+	Shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+	Shadow.ZIndex = 500
+	Shadow.Parent = Notif
+	
 	-- Add to active list
 	table.insert(activeNotifications, Notif)
 	
-	-- Slide in animation
-	local slideIn = TS:Create(Notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Position = UDim2.new(0, 0, 0, (#activeNotifications - 1) * 90)
+	-- Slide in animation with bounce
+	local slideIn = TS:Create(Notif, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, 0, 0, (#activeNotifications - 1) * 72)
 	})
 	slideIn:Play()
 	
@@ -496,35 +565,78 @@ local function CreateNotification(message, duration)
 	})
 	progressTween:Play()
 	
-	-- Auto remove after duration
-	task.delay(duration, function()
-		if Notif and Notif.Parent then
-			-- Remove from active list
-			for i, notif in ipairs(activeNotifications) do
-				if notif == Notif then
-					table.remove(activeNotifications, i)
-					break
-				end
+	-- Remove notification function
+	local function removeNotification()
+		if not Notif or not Notif.Parent then return end
+		
+		-- Stop progress animation
+		progressTween:Cancel()
+		
+		-- Remove from active list
+		for i, notif in ipairs(activeNotifications) do
+			if notif == Notif then
+				table.remove(activeNotifications, i)
+				break
 			end
-			
-			-- Slide out animation
-			local slideOut = TS:Create(Notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Position = UDim2.new(1, 20, 0, Notif.Position.Y.Offset),
-				BackgroundTransparency = 1
-			})
-			slideOut:Play()
-			slideOut.Completed:Connect(function()
-				Notif:Destroy()
-				
-				-- Update positions of remaining notifications
-				for i, notif in ipairs(activeNotifications) do
-					TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-						Position = UDim2.new(0, 0, 0, (i-1) * 90)
-					}):Play()
-				end
-			end)
 		end
+		
+		-- Slide out animation
+		local slideOut = TS:Create(Notif, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, 20, 0, Notif.Position.Y.Offset),
+			BackgroundTransparency = 1
+		})
+		slideOut:Play()
+		slideOut.Completed:Connect(function()
+			Notif:Destroy()
+			
+			-- Update positions of remaining notifications
+			for i, notif in ipairs(activeNotifications) do
+				TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+					Position = UDim2.new(0, 0, 0, (i-1) * 72)
+				}):Play()
+			end
+		end)
+	end
+	
+	-- Click to close
+	Notif.MouseButton1Click:Connect(removeNotification)
+	CloseBtn.MouseButton1Click:Connect(removeNotification)
+	
+	-- Hover effect
+	Notif.MouseEnter:Connect(function()
+		TS:Create(Notif, TweenInfo.new(0.15), {
+			Size = UDim2.new(1, 5, 0, 65),
+			BackgroundColor3 = Color3.new(
+				math.min(Themes[CT].accent2.R * 1.1, 1),
+				math.min(Themes[CT].accent2.G * 1.1, 1),
+				math.min(Themes[CT].accent2.B * 1.1, 1)
+			)
+		}):Play()
 	end)
+	
+	Notif.MouseLeave:Connect(function()
+		TS:Create(Notif, TweenInfo.new(0.15), {
+			Size = UDim2.new(1, 0, 0, 65),
+			BackgroundColor3 = Themes[CT].accent2
+		}):Play()
+	end)
+	
+	CloseBtn.MouseEnter:Connect(function()
+		TS:Create(CloseBtn, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.fromRGB(255, 70, 70),
+			BackgroundTransparency = 0
+		}):Play()
+	end)
+	
+	CloseBtn.MouseLeave:Connect(function()
+		TS:Create(CloseBtn, TweenInfo.new(0.1), {
+			BackgroundColor3 = Themes[CT].accent,
+			BackgroundTransparency = 0.3
+		}):Play()
+	end)
+	
+	-- Auto remove after duration
+	task.delay(duration, removeNotification)
 	
 	return Notif
 end
