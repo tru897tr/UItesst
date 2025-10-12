@@ -523,42 +523,74 @@ end
 
 -- Functions
 local function UpdateTheme(t)
-	CT = t
-	MF.BackgroundColor3 = Themes[t].bg
-	Title.TextColor3 = Themes[t].text
-	Credit.TextColor3 = Themes[t].text
-	HPT.TextColor3 = Themes[t].text
-	HPD.TextColor3 = Themes[t].text
-	SPT.TextColor3 = Themes[t].text
-	MPT.TextColor3 = Themes[t].text
-	MPD.TextColor3 = Themes[t].text
-	TDDL.TextColor3 = Themes[t].text
-	TDDA.TextColor3 = Themes[t].text
-	TDD.BackgroundColor3 = Themes[t].accent2
-	CB.BackgroundColor3 = Themes[t].accent
-	CB.TextColor3 = Themes[t].text
-	TB.BackgroundColor3 = Themes[t].toggle
-	SB.BackgroundColor3 = Themes[t].accent2
-	SB.ScrollBarImageColor3 = Themes[t].accent
-	CA.ScrollBarImageColor3 = Themes[t].accent
-	CF.BackgroundColor3 = Themes[t].bg
-	CFT.TextColor3 = Themes[t].text
-	CFD.TextColor3 = Themes[t].text
-	NB.BackgroundColor3 = Themes[t].accent
-	NB.TextColor3 = Themes[t].text
+	if t == CT then return end
 	
+	-- Store old theme for transition
+	local oldTheme = CT
+	CT = t
+	
+	-- Smooth color transition for all elements
+	local transitionTime = 0.35
+	local tweenInfo = TweenInfo.new(transitionTime, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	
+	-- Main frame fade effect
+	TS:Create(MF, tweenInfo, {BackgroundColor3 = Themes[t].bg}):Play()
+	
+	-- Text elements
+	TS:Create(Title, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(Credit, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(HPT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(HPD, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(SPT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(MPT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(MPD, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(TDDL, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(TDDA, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	
+	-- UI elements
+	TS:Create(TDD, tweenInfo, {BackgroundColor3 = Themes[t].accent2}):Play()
+	TS:Create(CB, tweenInfo, {BackgroundColor3 = Themes[t].accent, TextColor3 = Themes[t].text}):Play()
+	TS:Create(TB, tweenInfo, {BackgroundColor3 = Themes[t].toggle}):Play()
+	TS:Create(SB, tweenInfo, {BackgroundColor3 = Themes[t].accent2, ScrollBarImageColor3 = Themes[t].accent}):Play()
+	TS:Create(CA, tweenInfo, {ScrollBarImageColor3 = Themes[t].accent}):Play()
+	TS:Create(CF, tweenInfo, {BackgroundColor3 = Themes[t].bg}):Play()
+	TS:Create(CFT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(CFD, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(NB, tweenInfo, {BackgroundColor3 = Themes[t].accent, TextColor3 = Themes[t].text}):Play()
+	
+	-- Icon lines
 	for i=0,2 do
 		local L = IC:FindFirstChild("L"..i)
-		if L then L.BackgroundColor3 = Themes[t].text end
-	end
-	
-	for n,d in pairs(menuBtns) do
-		d.lbl.TextColor3 = Themes[t].text
-		if CP==n then
-			d.btn.BackgroundColor3 = Themes[t].accent
-			d.btn.BackgroundTransparency = 0
+		if L then
+			TS:Create(L, tweenInfo, {BackgroundColor3 = Themes[t].text}):Play()
 		end
 	end
+	
+	-- Menu buttons
+	for n,d in pairs(menuBtns) do
+		TS:Create(d.lbl, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+		if CP==n then
+			TS:Create(d.btn, tweenInfo, {BackgroundColor3 = Themes[t].accent, BackgroundTransparency = 0}):Play()
+		end
+	end
+	
+	-- Add a subtle flash effect on theme change
+	local flash = Instance.new("Frame")
+	flash.Size = UDim2.new(1, 0, 1, 0)
+	flash.Position = UDim2.new(0, 0, 0, 0)
+	flash.BackgroundColor3 = Themes[t].text
+	flash.BackgroundTransparency = 0.85
+	flash.BorderSizePixel = 0
+	flash.ZIndex = 999
+	flash.Parent = MF
+	
+	local flashTween = TS:Create(flash, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1
+	})
+	flashTween:Play()
+	flashTween.Completed:Connect(function()
+		flash:Destroy()
+	end)
 	
 	SaveTheme(t)
 end
@@ -573,7 +605,7 @@ local function GetPageIndex(pageName)
 	return 1
 end
 
--- Page switch with beautiful directional transition (UP/DOWN)
+-- Page switch with smooth continuous transition (UP/DOWN)
 local function SwitchPage(targetPage)
 	if isSwitchingPage then return end
 	if CP == targetPage then return end
@@ -585,96 +617,76 @@ local function SwitchPage(targetPage)
 	local direction = (targetIndex > currentIndex) and 1 or -1
 	local distance = math.abs(targetIndex - currentIndex)
 	
-	-- Get all pages in transition path
-	local pagesToShow = {}
-	if direction == 1 then
-		for i = currentIndex, targetIndex do
-			table.insert(pagesToShow, PageOrder[i])
-		end
-	else
-		for i = currentIndex, targetIndex, -1 do
-			table.insert(pagesToShow, PageOrder[i])
+	local currentPageObj = Pages[CP]
+	local targetPageObj = Pages[targetPage]
+	
+	-- Calculate total animation time based on distance
+	local totalTime = 0.2 * distance
+	
+	-- Hide all pages first
+	for _, page in pairs(Pages) do
+		if page ~= currentPageObj then
+			page.Visible = false
+			page.Position = UDim2.new(0, 0, 0, 0)
 		end
 	end
 	
-	-- Adjust speed based on distance (faster for distant pages)
-	local baseSpeed = 0.18
-	local middlePageSpeed = 0.08
-	
-	-- Animate through each page
-	local function animateToNextPage(index)
-		if index > #pagesToShow then
-			isSwitchingPage = false
-			return
-		end
-		
-		local currentPageName = pagesToShow[index]
-		local nextPageName = pagesToShow[index + 1]
-		
-		if not nextPageName then
-			isSwitchingPage = false
-			return
-		end
-		
-		local currentPageObj = Pages[currentPageName]
-		local nextPageObj = Pages[nextPageName]
-		
-		-- Determine if this is a middle page (skip quickly)
-		local isMiddlePage = (index > 1 and index < #pagesToShow)
-		local animSpeed = isMiddlePage and middlePageSpeed or baseSpeed
-		local waitTime = isMiddlePage and 0.02 or 0.05
-		
-		-- Slide out current page (UP or DOWN)
-		local slideOutPos = direction == 1 and UDim2.new(0, 0, -1, 0) or UDim2.new(0, 0, 1, 0)
-		local fadeOut = TS:Create(currentPageObj, TweenInfo.new(animSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Position = slideOutPos
-		})
-		
-		fadeOut:Play()
-		
-		-- Prepare next page
-		task.wait(waitTime)
-		
-		local slideInStartPos = direction == 1 and UDim2.new(0, 0, 1, 0) or UDim2.new(0, 0, -1, 0)
-		nextPageObj.Position = slideInStartPos
-		nextPageObj.Visible = true
-		
-		-- Slide in next page (UP or DOWN)
-		local fadeIn = TS:Create(nextPageObj, TweenInfo.new(animSpeed, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Position = UDim2.new(0, 0, 0, 0)
-		})
-		
-		fadeIn:Play()
-		
-		fadeIn.Completed:Connect(function()
-			-- Hide previous page
-			currentPageObj.Visible = false
-			currentPageObj.Position = UDim2.new(0, 0, 0, 0)
-			
-			-- Continue to next page in sequence
-			if index + 1 < #pagesToShow then
-				task.wait(0.01)
-				animateToNextPage(index + 1)
-			else
-				isSwitchingPage = false
+	-- If moving through middle pages, show them briefly during transition
+	if distance > 1 then
+		-- Show all middle pages in correct positions
+		for i = math.min(currentIndex, targetIndex), math.max(currentIndex, targetIndex) do
+			local pageName = PageOrder[i]
+			local pageObj = Pages[pageName]
+			if pageObj ~= currentPageObj then
+				local offset = (i - currentIndex) * direction
+				pageObj.Position = UDim2.new(0, 0, offset, 0)
+				pageObj.Visible = true
 			end
-		end)
+		end
+	end
+	
+	-- Prepare target page
+	local startOffset = direction * distance
+	targetPageObj.Position = UDim2.new(0, 0, startOffset, 0)
+	targetPageObj.Visible = true
+	
+	-- Animate all visible pages smoothly
+	for i = math.min(currentIndex, targetIndex), math.max(currentIndex, targetIndex) do
+		local pageName = PageOrder[i]
+		local pageObj = Pages[pageName]
+		local targetOffset = (i - targetIndex) * direction
+		
+		local tw = TS:Create(pageObj, TweenInfo.new(totalTime, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0, 0, targetOffset, 0)
+		})
+		tw:Play()
+		
+		if pageObj == targetPageObj then
+			tw.Completed:Connect(function()
+				-- Hide all pages except target
+				for _, page in pairs(Pages) do
+					if page ~= targetPageObj then
+						page.Visible = false
+						page.Position = UDim2.new(0, 0, 0, 0)
+					end
+				end
+				targetPageObj.Position = UDim2.new(0, 0, 0, 0)
+				isSwitchingPage = false
+			end)
+		end
 	end
 	
 	-- Update current page
 	CP = targetPage
 	
-	-- Update menu buttons
+	-- Update menu buttons with smooth animation
 	for n,d in pairs(menuBtns) do
 		if n==targetPage then
-			TS:Create(d.btn,TweenInfo.new(0.2),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0}):Play()
+			TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0}):Play()
 		else
-			TS:Create(d.btn,TweenInfo.new(0.2),{BackgroundTransparency=1}):Play()
+			TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundTransparency=1}):Play()
 		end
 	end
-	
-	-- Start animation sequence
-	animateToNextPage(1)
 end
 
 local function ToggleTheme()
