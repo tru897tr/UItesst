@@ -34,15 +34,40 @@ local Themes = {
 }
 
 local function ReadTheme()
-	if isfile and readfile then
-		local s,d = pcall(readfile, "theme.txt")
-		if s and d ~= "" then return d end
+	if readfile and isfile then
+		local success, result = pcall(function()
+			if isfile("StyleGUI_Theme.txt") then
+				return readfile("StyleGUI_Theme.txt")
+			end
+			return nil
+		end)
+		
+		if success and result and result ~= "" and Themes[result] then
+			print("✅ Theme loaded from file:",result)
+			return result
+		else
+			print("ℹ️ No saved theme found, using Dark theme")
+		end
+	else
+		print("⚠️ File system not available, theme saving disabled")
 	end
 	return "Dark"
 end
 
-local function SaveTheme(t)
-	if writefile then pcall(writefile, "theme.txt", t) end
+local function SaveTheme(themeName)
+	if writefile then
+		local success, err = pcall(function()
+			writefile("StyleGUI_Theme.txt", themeName)
+		end)
+		
+		if success then
+			print("💾 Theme saved:",themeName)
+		else
+			warn("❌ Failed to save theme:",err)
+		end
+	else
+		warn("⚠️ writefile not available, cannot save theme")
+	end
 end
 
 local CT = ReadTheme()
