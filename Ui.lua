@@ -380,6 +380,155 @@ Credit.TextXAlignment = Enum.TextXAlignment.Right
 Credit.ZIndex = 101
 Credit.Parent = MF
 
+-- Notification system
+local NotificationContainer = Instance.new("Frame")
+NotificationContainer.Size = UDim2.new(0, 320, 1, -20)
+NotificationContainer.Position = UDim2.new(1, -330, 0, 10)
+NotificationContainer.BackgroundTransparency = 1
+NotificationContainer.ZIndex = 500
+NotificationContainer.Parent = G
+
+local activeNotifications = {}
+local maxNotifications = 3
+
+local function CreateNotification(message, duration)
+	duration = duration or 5
+	
+	-- Remove oldest notification if limit exceeded
+	if #activeNotifications >= maxNotifications then
+		local oldest = table.remove(activeNotifications, 1)
+		if oldest and oldest.Parent then
+			local fadeOut = TS:Create(oldest, TweenInfo.new(0.2), {
+				Position = UDim2.new(1, 20, 0, oldest.Position.Y.Offset),
+				BackgroundTransparency = 1
+			})
+			fadeOut:Play()
+			fadeOut.Completed:Connect(function()
+				oldest:Destroy()
+			end)
+			-- Update positions of remaining notifications
+			task.wait(0.1)
+			for i, notif in ipairs(activeNotifications) do
+				TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+					Position = UDim2.new(0, 0, 0, (i-1) * 90)
+				}):Play()
+			end
+		end
+	end
+	
+	-- Create notification frame
+	local Notif = Instance.new("Frame")
+	Notif.Size = UDim2.new(1, 0, 0, 80)
+	Notif.Position = UDim2.new(1, 20, 0, #activeNotifications * 90)
+	Notif.BackgroundColor3 = Themes[CT].accent2
+	Notif.BorderSizePixel = 0
+	Notif.ZIndex = 501
+	Notif.Parent = NotificationContainer
+	
+	Instance.new("UICorner", Notif).CornerRadius = UDim.new(0, 12)
+	
+	local NotifStroke = Instance.new("UIStroke")
+	NotifStroke.Thickness = 2
+	NotifStroke.Color = Color3.fromRGB(100, 200, 255)
+	NotifStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	NotifStroke.Transparency = 0.5
+	NotifStroke.Parent = Notif
+	
+	-- Icon
+	local Icon = Instance.new("TextLabel")
+	Icon.Size = UDim2.new(0, 50, 1, 0)
+	Icon.Position = UDim2.new(0, 0, 0, 0)
+	Icon.BackgroundTransparency = 1
+	Icon.Text = "✨"
+	Icon.TextColor3 = Themes[CT].text
+	Icon.Font = Enum.Font.GothamBold
+	Icon.TextSize = 28
+	Icon.ZIndex = 502
+	Icon.Parent = Notif
+	
+	-- Message
+	local Msg = Instance.new("TextLabel")
+	Msg.Size = UDim2.new(1, -60, 1, -20)
+	Msg.Position = UDim2.new(0, 55, 0, 10)
+	Msg.BackgroundTransparency = 1
+	Msg.Text = message
+	Msg.TextColor3 = Themes[CT].text
+	Msg.Font = Enum.Font.Gotham
+	Msg.TextSize = 14
+	Msg.TextWrapped = true
+	Msg.TextXAlignment = Enum.TextXAlignment.Left
+	Msg.TextYAlignment = Enum.TextYAlignment.Center
+	Msg.ZIndex = 502
+	Msg.Parent = Notif
+	
+	-- Progress bar
+	local ProgressBg = Instance.new("Frame")
+	ProgressBg.Size = UDim2.new(1, -20, 0, 3)
+	ProgressBg.Position = UDim2.new(0, 10, 1, -8)
+	ProgressBg.BackgroundColor3 = Themes[CT].accent
+	ProgressBg.BorderSizePixel = 0
+	ProgressBg.ZIndex = 502
+	ProgressBg.Parent = Notif
+	
+	Instance.new("UICorner", ProgressBg).CornerRadius = UDim.new(1, 0)
+	
+	local Progress = Instance.new("Frame")
+	Progress.Size = UDim2.new(1, 0, 1, 0)
+	Progress.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+	Progress.BorderSizePixel = 0
+	Progress.ZIndex = 503
+	Progress.Parent = ProgressBg
+	
+	Instance.new("UICorner", Progress).CornerRadius = UDim.new(1, 0)
+	
+	-- Add to active list
+	table.insert(activeNotifications, Notif)
+	
+	-- Slide in animation
+	local slideIn = TS:Create(Notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, 0, 0, (#activeNotifications - 1) * 90)
+	})
+	slideIn:Play()
+	
+	-- Progress bar animation
+	local progressTween = TS:Create(Progress, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
+		Size = UDim2.new(0, 0, 1, 0)
+	})
+	progressTween:Play()
+	
+	-- Auto remove after duration
+	task.delay(duration, function()
+		if Notif and Notif.Parent then
+			-- Remove from active list
+			for i, notif in ipairs(activeNotifications) do
+				if notif == Notif then
+					table.remove(activeNotifications, i)
+					break
+				end
+			end
+			
+			-- Slide out animation
+			local slideOut = TS:Create(Notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = UDim2.new(1, 20, 0, Notif.Position.Y.Offset),
+				BackgroundTransparency = 1
+			})
+			slideOut:Play()
+			slideOut.Completed:Connect(function()
+				Notif:Destroy()
+				
+				-- Update positions of remaining notifications
+				for i, notif in ipairs(activeNotifications) do
+					TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+						Position = UDim2.new(0, 0, 0, (i-1) * 90)
+					}):Play()
+				end
+			end)
+		end
+	end)
+	
+	return Notif
+end
+
 -- Confirm dialog
 local CF = Instance.new("Frame")
 CF.Size = UDim2.new(0,380,0,190)
@@ -591,6 +740,9 @@ local function UpdateTheme(t)
 	flashTween.Completed:Connect(function()
 		flash:Destroy()
 	end)
+	
+	-- Show notification
+	CreateNotification("Theme changed to " .. t, 3)
 	
 	SaveTheme(t)
 end
@@ -969,3 +1121,8 @@ end)
 print("✅ Stylish GUI v4 loaded successfully!")
 print("🎨 Current theme:",CT)
 print("💎 Created by tru897tr")
+
+-- Show welcome notification
+task.delay(0.5, function()
+	CreateNotification("Welcome to the script! Hope you have a great experience.", 5)
+end)
