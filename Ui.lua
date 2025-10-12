@@ -537,19 +537,6 @@ local function CreateNotification(message, duration)
 	
 	Instance.new("UICorner", Progress).CornerRadius = UDim.new(1, 0)
 	
-	-- Add shadow effect
-	local Shadow = Instance.new("ImageLabel")
-	Shadow.Size = UDim2.new(1, 20, 1, 20)
-	Shadow.Position = UDim2.new(0, -10, 0, -10)
-	Shadow.BackgroundTransparency = 1
-	Shadow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-	Shadow.ImageColor3 = Color3.new(0, 0, 0)
-	Shadow.ImageTransparency = 0.7
-	Shadow.ScaleType = Enum.ScaleType.Slice
-	Shadow.SliceCenter = Rect.new(10, 10, 10, 10)
-	Shadow.ZIndex = 500
-	Shadow.Parent = Notif
-	
 	-- Add to active list
 	table.insert(activeNotifications, Notif)
 	
