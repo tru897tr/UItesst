@@ -1,7 +1,7 @@
 --[[
 🌈 Stylish GUI v4 - Professional Edition
-💎 Clean design, smooth animations
-📱 Mobile & PC support
+💎 Beautiful page transitions
+📱 Smooth animations
 --]]
 
 local Players = game:GetService("Players")
@@ -9,13 +9,6 @@ local UIS = game:GetService("UserInputService")
 local TS = game:GetService("TweenService")
 
 local plr = Players.LocalPlayer
-
--- Key check
-if (getgenv().Key or "") ~= "tru897tr" then
-	plr:Kick("Invalid Key! Use: getgenv().Key = \"tru897tr\"")
-	return
-end
-getgenv().Key = nil
 
 -- Anti-duplicate
 local ID = "StyleGUI_" .. plr.UserId
@@ -43,36 +36,27 @@ local function ReadTheme()
 		end)
 		
 		if success and result and result ~= "" and Themes[result] then
-			print("✅ Theme loaded from file:",result)
 			return result
-		else
-			print("ℹ️ No saved theme found, using Dark theme")
 		end
-	else
-		print("⚠️ File system not available, theme saving disabled")
 	end
 	return "Dark"
 end
 
 local function SaveTheme(themeName)
 	if writefile then
-		local success, err = pcall(function()
+		pcall(function()
 			writefile("StyleGUI_Theme.txt", themeName)
 		end)
-		
-		if success then
-			print("💾 Theme saved:",themeName)
-		else
-			warn("❌ Failed to save theme:",err)
-		end
-	else
-		warn("⚠️ writefile not available, cannot save theme")
 	end
 end
 
 local CT = ReadTheme()
 if not Themes[CT] then CT = "Dark" end
 local CP = "Home"
+
+-- Animation lock to prevent spam
+local isAnimating = false
+local isSwitchingPage = false
 
 -- GUI
 local G = Instance.new("ScreenGui")
@@ -101,7 +85,7 @@ TBS.Thickness = 2.5
 TBS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 TBS.Parent = TB
 
--- RGB animation
+-- RGB animation with spam protection
 task.spawn(function()
 	while TB and TB.Parent do
 		for i=0,1,0.02 do
@@ -150,7 +134,7 @@ MFS.Thickness = 3
 MFS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 MFS.Parent = MF
 
--- RGB border
+-- RGB border with spam protection
 task.spawn(function()
 	while MF and MF.Parent do
 		for i=0,1,0.02 do
@@ -196,7 +180,7 @@ CB.Parent = TBar
 
 Instance.new("UICorner",CB).CornerRadius = UDim.new(0.45,0)
 
--- Resize handles (invisible, 4 corners only)
+-- Resize handles (invisible, 4 corners)
 local function createHandle(name, pos, anchor)
 	local H = Instance.new("Frame")
 	H.Name = name
@@ -239,6 +223,7 @@ CA.ScrollBarThickness = 6
 CA.ScrollBarImageColor3 = Themes[CT].accent
 CA.AutomaticCanvasSize = Enum.AutomaticSize.Y
 CA.CanvasSize = UDim2.new(0,0,0,0)
+CA.ClipsDescendants = true
 CA.ZIndex = 101
 CA.Parent = MF
 
@@ -531,11 +516,50 @@ local function UpdateTheme(t)
 	SaveTheme(t)
 end
 
+-- Page switch with beautiful transition
 local function SwitchPage(p)
-	CP = p
-	HP.Visible = (p=="Home")
-	SP.Visible = (p=="Settings")
+	if isSwitchingPage then return end
+	if CP == p then return end
 	
+	isSwitchingPage = true
+	local oldPage = (p=="Home") and SP or HP
+	local newPage = (p=="Home") and HP or SP
+	
+	-- Fade out old page (slide to left)
+	local fadeOut = TS:Create(oldPage, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(-0.5, 0, 0, 0),
+		BackgroundTransparency = 1
+	})
+	
+	fadeOut:Play()
+	
+	-- Wait for fade out
+	task.wait(0.15)
+	
+	-- Hide old, prepare new
+	oldPage.Visible = false
+	oldPage.Position = UDim2.new(0, 0, 0, 0)
+	oldPage.BackgroundTransparency = 1
+	
+	newPage.Position = UDim2.new(0.5, 0, 0, 0)
+	newPage.BackgroundTransparency = 1
+	newPage.Visible = true
+	
+	-- Fade in new page (slide from right)
+	local fadeIn = TS:Create(newPage, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, 0, 0, 0),
+		BackgroundTransparency = 1
+	})
+	
+	fadeIn:Play()
+	fadeIn.Completed:Connect(function()
+		isSwitchingPage = false
+	end)
+	
+	-- Update current page
+	CP = p
+	
+	-- Update menu buttons
 	for n,d in pairs(menuBtns) do
 		if n==p then
 			TS:Create(d.btn,TweenInfo.new(0.2),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0}):Play()
@@ -546,6 +570,9 @@ local function SwitchPage(p)
 end
 
 local function ToggleTheme()
+	if isAnimating then return end
+	isAnimating = true
+	
 	isOpen = not isOpen
 	if isOpen then
 		TL.Visible = true
@@ -557,30 +584,59 @@ local function ToggleTheme()
 		tw.Completed:Connect(function() TL.Visible=false end)
 		TS:Create(TDDA,TweenInfo.new(0.25),{Rotation=0}):Play()
 	end
+	
+	task.wait(0.35)
+	isAnimating = false
 end
 
 local function ShowFrame()
+	if isAnimating then return end
+	isAnimating = true
+	
 	MF.Visible = true
 	MF.Size = UDim2.new(0,0,0,0)
-	TS:Create(MF,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,600,0,380)}):Play()
+	local tw = TS:Create(MF,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,600,0,380)})
+	tw:Play()
+	tw.Completed:Connect(function()
+		isAnimating = false
+	end)
 end
 
 local function HideFrame()
+	if isAnimating then return end
+	isAnimating = true
+	
 	local tw = TS:Create(MF,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)})
 	tw:Play()
-	tw.Completed:Connect(function() MF.Visible=false end)
+	tw.Completed:Connect(function() 
+		MF.Visible=false
+		isAnimating = false
+	end)
 end
 
 local function ShowConfirm()
+	if isAnimating then return end
+	isAnimating = true
+	
 	CF.Visible = true
 	CF.Size = UDim2.new(0,0,0,0)
-	TS:Create(CF,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,380,0,190)}):Play()
+	local tw = TS:Create(CF,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,380,0,190)})
+	tw:Play()
+	tw.Completed:Connect(function()
+		isAnimating = false
+	end)
 end
 
 local function HideConfirm()
+	if isAnimating then return end
+	isAnimating = true
+	
 	local tw = TS:Create(CF,TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)})
 	tw:Play()
-	tw.Completed:Connect(function() CF.Visible=false end)
+	tw.Completed:Connect(function() 
+		CF.Visible=false
+		isAnimating = false
+	end)
 end
 
 -- Events
@@ -601,78 +657,96 @@ for n,b in pairs(themeBtns) do
 	b.MouseButton1Click:Connect(function() UpdateTheme(n) end)
 end
 
--- Hover effects
-TB.MouseEnter:Connect(function()
-	TS:Create(TB,TweenInfo.new(0.2),{Size=UDim2.new(0,46,0,46)}):Play()
-end)
-TB.MouseLeave:Connect(function()
-	TS:Create(TB,TweenInfo.new(0.2),{Size=UDim2.new(0,42,0,42)}):Play()
-end)
+-- Hover effects with spam protection
+local hoverConnections = {}
 
-CB.MouseEnter:Connect(function()
-	TS:Create(CB,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(255,60,60),TextColor3=Color3.new(1,1,1)}):Play()
-end)
-CB.MouseLeave:Connect(function()
-	TS:Create(CB,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,TextColor3=Themes[CT].text}):Play()
-end)
+local function safeHover(obj, hoverTween, leaveTween)
+	if hoverConnections[obj] then return end
+	
+	hoverConnections[obj] = true
+	
+	obj.MouseEnter:Connect(function()
+		hoverTween()
+	end)
+	
+	obj.MouseLeave:Connect(function()
+		leaveTween()
+	end)
+end
+
+safeHover(TB,
+	function() TS:Create(TB,TweenInfo.new(0.2),{Size=UDim2.new(0,46,0,46)}):Play() end,
+	function() TS:Create(TB,TweenInfo.new(0.2),{Size=UDim2.new(0,42,0,42)}):Play() end
+)
+
+safeHover(CB,
+	function() TS:Create(CB,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(255,60,60),TextColor3=Color3.new(1,1,1)}):Play() end,
+	function() TS:Create(CB,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,TextColor3=Themes[CT].text}):Play() end
+)
 
 for n,d in pairs(menuBtns) do
-	d.btn.MouseEnter:Connect(function()
-		if CP~=n then
-			TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0.5}):Play()
+	safeHover(d.btn,
+		function()
+			if CP~=n then
+				TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0.5}):Play()
+			end
+		end,
+		function()
+			if CP~=n then
+				TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundTransparency=1}):Play()
+			end
 		end
-	end)
-	d.btn.MouseLeave:Connect(function()
-		if CP~=n then
-			TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundTransparency=1}):Play()
-		end
-	end)
+	)
 end
 
 for n,b in pairs(themeBtns) do
-	b.MouseEnter:Connect(function()
-		local bright=Color3.new(
-			math.min(Themes[n].bg.R*1.25,1),
-			math.min(Themes[n].bg.G*1.25,1),
-			math.min(Themes[n].bg.B*1.25,1)
-		)
-		TS:Create(b,TweenInfo.new(0.15),{BackgroundColor3=bright}):Play()
-	end)
-	b.MouseLeave:Connect(function()
-		TS:Create(b,TweenInfo.new(0.15),{BackgroundColor3=Themes[n].bg}):Play()
-	end)
+	safeHover(b,
+		function()
+			local bright=Color3.new(
+				math.min(Themes[n].bg.R*1.25,1),
+				math.min(Themes[n].bg.G*1.25,1),
+				math.min(Themes[n].bg.B*1.25,1)
+			)
+			TS:Create(b,TweenInfo.new(0.15),{BackgroundColor3=bright}):Play()
+		end,
+		function()
+			TS:Create(b,TweenInfo.new(0.15),{BackgroundColor3=Themes[n].bg}):Play()
+		end
+	)
 end
 
-TDD.MouseEnter:Connect(function()
-	local bright=Color3.new(
-		math.min(Themes[CT].accent2.R*1.15,1),
-		math.min(Themes[CT].accent2.G*1.15,1),
-		math.min(Themes[CT].accent2.B*1.15,1)
-	)
-	TS:Create(TDD,TweenInfo.new(0.15),{BackgroundColor3=bright}):Play()
-end)
-TDD.MouseLeave:Connect(function()
-	TS:Create(TDD,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent2}):Play()
-end)
+safeHover(TDD,
+	function()
+		local bright=Color3.new(
+			math.min(Themes[CT].accent2.R*1.15,1),
+			math.min(Themes[CT].accent2.G*1.15,1),
+			math.min(Themes[CT].accent2.B*1.15,1)
+		)
+		TS:Create(TDD,TweenInfo.new(0.15),{BackgroundColor3=bright}):Play()
+	end,
+	function()
+		TS:Create(TDD,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent2}):Play()
+	end
+)
 
-YB.MouseEnter:Connect(function()
-	TS:Create(YB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(220,40,40)}):Play()
-end)
-YB.MouseLeave:Connect(function()
-	TS:Create(YB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(255,50,50)}):Play()
-end)
+safeHover(YB,
+	function() TS:Create(YB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(220,40,40)}):Play() end,
+	function() TS:Create(YB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(255,50,50)}):Play() end
+)
 
-NB.MouseEnter:Connect(function()
-	local bright=Color3.new(
-		math.min(Themes[CT].accent.R*1.2,1),
-		math.min(Themes[CT].accent.G*1.2,1),
-		math.min(Themes[CT].accent.B*1.2,1)
-	)
-	TS:Create(NB,TweenInfo.new(0.12),{BackgroundColor3=bright}):Play()
-end)
-NB.MouseLeave:Connect(function()
-	TS:Create(NB,TweenInfo.new(0.12),{BackgroundColor3=Themes[CT].accent}):Play()
-end)
+safeHover(NB,
+	function()
+		local bright=Color3.new(
+			math.min(Themes[CT].accent.R*1.2,1),
+			math.min(Themes[CT].accent.G*1.2,1),
+			math.min(Themes[CT].accent.B*1.2,1)
+		)
+		TS:Create(NB,TweenInfo.new(0.12),{BackgroundColor3=bright}):Play()
+	end,
+	function()
+		TS:Create(NB,TweenInfo.new(0.12),{BackgroundColor3=Themes[CT].accent}):Play()
+	end
+)
 
 -- Drag frame
 local drag,dragS,startP
@@ -714,7 +788,7 @@ UIS.InputChanged:Connect(function(i)
 	end
 end)
 
--- Resize from 4 corners (invisible handles)
+-- Resize from 4 corners
 local resizing,resizeType,resizeStart,startSize,startPos
 local minSize=Vector2.new(500,350)
 local maxSize=Vector2.new(900,700)
@@ -746,23 +820,19 @@ UIS.InputChanged:Connect(function(i)
 		local newX,newY=startPos.X.Offset,startPos.Y.Offset
 		
 		if resizeType=="BR" then
-			-- Bottom-Right: expand width and height
 			newW=math.clamp(startSize.X+delta.X,minSize.X,maxSize.X)
 			newH=math.clamp(startSize.Y+delta.Y,minSize.Y,maxSize.Y)
 		elseif resizeType=="BL" then
-			-- Bottom-Left: contract width (move left), expand height
 			local tempW=math.clamp(startSize.X-delta.X,minSize.X,maxSize.X)
 			newW=tempW
 			newH=math.clamp(startSize.Y+delta.Y,minSize.Y,maxSize.Y)
 			newX=startPos.X.Offset+(startSize.X-tempW)
 		elseif resizeType=="TR" then
-			-- Top-Right: expand width, contract height (move up)
 			newW=math.clamp(startSize.X+delta.X,minSize.X,maxSize.X)
 			local tempH=math.clamp(startSize.Y-delta.Y,minSize.Y,maxSize.Y)
 			newH=tempH
 			newY=startPos.Y.Offset+(startSize.Y-tempH)
 		elseif resizeType=="TL" then
-			-- Top-Left: contract width (move left), contract height (move up)
 			local tempW=math.clamp(startSize.X-delta.X,minSize.X,maxSize.X)
 			local tempH=math.clamp(startSize.Y-delta.Y,minSize.Y,maxSize.Y)
 			newW=tempW
@@ -778,5 +848,4 @@ end)
 
 print("✅ Stylish GUI v4 loaded successfully!")
 print("🎨 Current theme:",CT)
-print("📍 Click toggle button to open GUI")
 print("💎 Created by tru897tr")
