@@ -424,6 +424,7 @@ local function CreateNotification(message, duration)
 	Notif.BorderSizePixel = 0
 	Notif.AutoButtonColor = false
 	Notif.Text = ""
+	Notif.ClipsDescendants = true
 	Notif.ZIndex = 501
 	Notif.Parent = NotificationContainer
 	
@@ -538,6 +539,7 @@ local function CreateNotification(message, duration)
 	Instance.new("UICorner", Progress).CornerRadius = UDim.new(1, 0)
 	
 	-- Add to active list
+	table.insert(activeNotifications, Notif)
 	table.insert(activeNotifications, Notif)
 	
 	-- Slide in animation with bounce
@@ -860,6 +862,16 @@ end
 local function SwitchPage(targetPage)
 	if isSwitchingPage then return end
 	if CP == targetPage then return end
+	
+	-- Close theme dropdown if open
+	if isOpen then
+		isOpen = false
+		TS:Create(TL,TweenInfo.new(0.15),{Size=UDim2.new(1,0,0,0)}):Play()
+		TS:Create(TDDA,TweenInfo.new(0.15),{Rotation=0}):Play()
+		task.delay(0.15, function()
+			TL.Visible = false
+		end)
+	end
 	
 	isSwitchingPage = true
 	
