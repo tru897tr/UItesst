@@ -630,6 +630,165 @@ local function CreateNotification(message, duration)
 	return Notif
 end
 
+-- Simple Notification System
+local NotifContainer = Instance.new("Frame")
+NotifContainer.Size = UDim2.new(0, 300, 0, 230)
+NotifContainer.Position = UDim2.new(1, -310, 0, 10)
+NotifContainer.BackgroundTransparency = 1
+NotifContainer.ZIndex = 600
+NotifContainer.Parent = G
+
+local notifs = {}
+local MAX_NOTIFS = 3
+
+local function ShowNotification(msg)
+	-- Remove oldest if at max
+	if #notifs >= MAX_NOTIFS then
+		local old = table.remove(notifs, 1)
+		if old then
+			TS:Create(old, TweenInfo.new(0.2), {Position = UDim2.new(1.2, 0, 0, old.Position.Y.Offset)}):Play()
+			task.delay(0.25, function() if old then old:Destroy() end end)
+			task.wait(0.15)
+			-- Move remaining down
+			for i, n in ipairs(notifs) do
+				TS:Create(n, TweenInfo.new(0.2), {Position = UDim2.new(0, 0, 0, (i-1) * 75)}):Play()
+			end
+		end
+	end
+	
+	-- Create new notification (as button for click)
+	local N = Instance.new("TextButton")
+	N.Size = UDim2.new(1, 0, 0, 70)
+	N.Position = UDim2.new(1.2, 0, 0, #notifs * 75)
+	N.BackgroundColor3 = Themes[CT].accent2
+	N.BorderSizePixel = 0
+	N.AutoButtonColor = false
+	N.Text = ""
+	N.ZIndex = 601
+	N.Parent = NotifContainer
+	
+	Instance.new("UICorner", N).CornerRadius = UDim.new(0, 10)
+	
+	-- RGB border synced with main GUI
+	local S = Instance.new("UIStroke")
+	S.Thickness = 2
+	S.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	S.Parent = N
+	
+	local rgbConn = game:GetService("RunService").Heartbeat:Connect(function()
+		if MFS and N and N.Parent then
+			S.Color = MFS.Color
+		end
+	end)
+	
+	N.Destroying:Connect(function() if rgbConn then rgbConn:Disconnect() end end)
+	
+	-- Icon
+	local I = Instance.new("TextLabel")
+	I.Size = UDim2.new(0, 50, 1, -10)
+	I.Position = UDim2.new(0, 0, 0, 0)
+	I.BackgroundTransparency = 1
+	I.Text = "✨"
+	I.TextColor3 = Themes[CT].text
+	I.Font = Enum.Font.GothamBold
+	I.TextSize = 26
+	I.ZIndex = 602
+	I.Parent = N
+	
+	-- Message
+	local M = Instance.new("TextLabel")
+	M.Size = UDim2.new(1, -60, 1, -20)
+	M.Position = UDim2.new(0, 55, 0, 5)
+	M.BackgroundTransparency = 1
+	M.Text = msg
+	M.TextColor3 = Themes[CT].text
+	M.Font = Enum.Font.Gotham
+	M.TextSize = 13
+	M.TextWrapped = true
+	M.TextXAlignment = Enum.TextXAlignment.Left
+	M.TextYAlignment = Enum.TextYAlignment.Top
+	M.ZIndex = 602
+	M.Parent = N
+	
+	-- Progress bar background
+	local PBG = Instance.new("Frame")
+	PBG.Size = UDim2.new(1, -20, 0, 3)
+	PBG.Position = UDim2.new(0, 10, 1, -8)
+	PBG.BackgroundColor3 = Themes[CT].accent
+	PBG.BackgroundTransparency = 0.5
+	PBG.BorderSizePixel = 0
+	PBG.ZIndex = 602
+	PBG.Parent = N
+	
+	Instance.new("UICorner", PBG).CornerRadius = UDim.new(1, 0)
+	
+	-- Progress bar
+	local PB = Instance.new("Frame")
+	PB.Size = UDim2.new(1, 0, 1, 0)
+	PB.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+	PB.BorderSizePixel = 0
+	PB.ZIndex = 603
+	PB.Parent = PBG
+	
+	Instance.new("UICorner", PB).CornerRadius = UDim.new(1, 0)
+	
+	-- Add to list
+	table.insert(notifs, N)
+	
+	-- Slide in
+	TS:Create(N, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(0, 0, 0, (#notifs - 1) * 75)
+	}):Play()
+	
+	-- Progress bar countdown animation
+	local progressTween = TS:Create(PB, TweenInfo.new(4, Enum.EasingStyle.Linear), {
+		Size = UDim2.new(0, 0, 1, 0)
+	})
+	progressTween:Play()
+	
+	-- Remove notification function
+	local function removeNotif()
+		if not N or not N.Parent then return end
+		
+		-- Cancel progress
+		if progressTween then
+			progressTween:Cancel()
+		end
+		
+		-- Remove from list
+		for i, n in ipairs(notifs) do
+			if n == N then
+				table.remove(notifs, i)
+				break
+			end
+		end
+		
+		-- Slide out
+		TS:Create(N, TweenInfo.new(0.2), {Position = UDim2.new(1.2, 0, 0, N.Position.Y.Offset)}):Play()
+		task.delay(0.25, function() if N then N:Destroy() end end)
+		
+		-- Move remaining up
+		for i, n in ipairs(notifs) do
+			TS:Create(n, TweenInfo.new(0.2), {Position = UDim2.new(0, 0, 0, (i-1) * 75)}):Play()
+		end
+	end
+	
+	-- Click to close
+	N.MouseButton1Click:Connect(removeNotif)
+	
+	-- Hover effect
+	N.MouseEnter:Connect(function()
+		TS:Create(N, TweenInfo.new(0.15), {Size = UDim2.new(1, 5, 0, 70)}):Play()
+	end)
+	
+	N.MouseLeave:Connect(function()
+		TS:Create(N, TweenInfo.new(0.15), {Size = UDim2.new(1, 0, 0, 70)}):Play()
+	end)
+	
+	-- Auto remove after 4 seconds
+	task.delay(4, removeNotif)
+end
+
 -- Confirm dialog
 local CF = Instance.new("Frame")
 CF.Size = UDim2.new(0,380,0,190)
@@ -843,7 +1002,7 @@ local function UpdateTheme(t)
 	end)
 	
 	-- Show notification
-	CreateNotification("Theme changed to " .. t, 3)
+	ShowNotification("Theme changed to " .. t)
 	
 	SaveTheme(t)
 end
@@ -1235,5 +1394,5 @@ print("💎 Created by tru897tr")
 
 -- Show welcome notification
 task.delay(0.5, function()
-	CreateNotification("Welcome to the script! Hope you have a great experience.", 5)
+	ShowNotification("Welcome! Enjoy your experience with this script.")
 end)
