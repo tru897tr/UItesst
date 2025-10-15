@@ -1,12 +1,13 @@
 --[[
-🌈 Stylish GUI v4 - Professional Edition
-💎 Beautiful page transitions with direction
-📱 Smooth animations
+🌈 Stylish GUI v4 - Professional Edition (Fixed)
+💎 Beautiful animations & transitions
+📱 Smooth drag & resize
 --]]
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TS = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local plr = Players.LocalPlayer
 
@@ -17,6 +18,57 @@ if _G[ID] then
 	return
 end
 _G[ID] = true
+
+-- Settings storage
+local SettingsFile = "StyleGUI_Settings.json"
+local Settings = {
+	Farm = {
+		FarmLv = false,
+		AttackPlayer = false,
+		AttackMobNearest = false
+	},
+	FarmSettings = {
+		BringMob = true,
+		AutoAttack = true
+	}
+}
+
+-- Load settings
+local function LoadSettings()
+	if readfile and isfile then
+		local success, result = pcall(function()
+			if isfile(SettingsFile) then
+				local data = readfile(SettingsFile)
+				if data and data ~= "" then
+					return game:GetService("HttpService"):JSONDecode(data)
+				end
+			end
+			return nil
+		end)
+		
+		if success and result then
+			for category, values in pairs(result) do
+				if Settings[category] then
+					for key, value in pairs(values) do
+						Settings[category][key] = value
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Save settings
+local function SaveSettings()
+	if writefile then
+		pcall(function()
+			local encoded = game:GetService("HttpService"):JSONEncode(Settings)
+			writefile(SettingsFile, encoded)
+		end)
+	end
+end
+
+LoadSettings()
 
 -- Themes
 local Themes = {
@@ -34,7 +86,6 @@ local function ReadTheme()
 			end
 			return nil
 		end)
-		
 		if success and result and result ~= "" and Themes[result] then
 			return result
 		end
@@ -53,11 +104,8 @@ end
 local CT = ReadTheme()
 if not Themes[CT] then CT = "Dark" end
 
--- Page order system
 local PageOrder = {"Home", "Settings", "More"}
 local CP = "Home"
-
--- Animation lock to prevent spam
 local isAnimating = false
 local isSwitchingPage = false
 
@@ -88,7 +136,7 @@ TBS.Thickness = 2.5
 TBS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 TBS.Parent = TB
 
--- RGB animation with spam protection
+-- RGB animation
 task.spawn(function()
 	while TB and TB.Parent do
 		for i=0,1,0.02 do
@@ -122,7 +170,7 @@ end
 
 -- Main frame
 local MF = Instance.new("Frame")
-MF.Size = UDim2.new(0,600,0,380)
+MF.Size = UDim2.new(0,650,0,420)
 MF.Position = UDim2.new(0.5,0,0.5,0)
 MF.AnchorPoint = Vector2.new(0.5,0.5)
 MF.BackgroundColor3 = Themes[CT].bg
@@ -137,7 +185,7 @@ MFS.Thickness = 3
 MFS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 MFS.Parent = MF
 
--- RGB border with spam protection
+-- RGB border
 task.spawn(function()
 	while MF and MF.Parent do
 		for i=0,1,0.02 do
@@ -183,11 +231,11 @@ CB.Parent = TBar
 
 Instance.new("UICorner",CB).CornerRadius = UDim.new(0.45,0)
 
--- Resize handles (invisible, 4 corners)
+-- Resize handles
 local function createHandle(name, pos, anchor)
 	local H = Instance.new("Frame")
 	H.Name = name
-	H.Size = UDim2.new(0,25,0,25)
+	H.Size = UDim2.new(0,20,0,20)
 	H.Position = pos
 	H.AnchorPoint = anchor
 	H.BackgroundTransparency = 1
@@ -198,12 +246,12 @@ end
 
 local RH_BR = createHandle("BR", UDim2.new(1,0,1,0), Vector2.new(1,1))
 local RH_BL = createHandle("BL", UDim2.new(0,0,1,0), Vector2.new(0,1))
-local RH_TR = createHandle("TR", UDim2.new(1,0,0,50), Vector2.new(1,0))
-local RH_TL = createHandle("TL", UDim2.new(0,0,0,50), Vector2.new(0,0))
+local RH_TR = createHandle("TR", UDim2.new(1,0,0,0), Vector2.new(1,0))
+local RH_TL = createHandle("TL", UDim2.new(0,0,0,0), Vector2.new(0,0))
 
 -- Sidebar
 local SB = Instance.new("ScrollingFrame")
-SB.Size = UDim2.new(0,125,1,-95)
+SB.Size = UDim2.new(0,140,1,-95)
 SB.Position = UDim2.new(0,12,0,60)
 SB.BackgroundColor3 = Themes[CT].accent2
 SB.BorderSizePixel = 0
@@ -218,8 +266,8 @@ Instance.new("UICorner",SB).CornerRadius = UDim.new(0,12)
 
 -- Content area
 local CA = Instance.new("ScrollingFrame")
-CA.Size = UDim2.new(1,-155,1,-95)
-CA.Position = UDim2.new(0,145,0,60)
+CA.Size = UDim2.new(1,-170,1,-95)
+CA.Position = UDim2.new(0,160,0,60)
 CA.BackgroundTransparency = 1
 CA.BorderSizePixel = 0
 CA.ScrollBarThickness = 6
@@ -240,29 +288,150 @@ HP.ZIndex = 102
 HP.Parent = CA
 
 local HPT = Instance.new("TextLabel")
-HPT.Size = UDim2.new(1,0,0,40)
+HPT.Size = UDim2.new(1,0,0,35)
 HPT.BackgroundTransparency = 1
-HPT.Text = "Welcome"
+HPT.Text = "⚔️ Farm Options"
 HPT.TextColor3 = Themes[CT].text
 HPT.Font = Enum.Font.GothamBold
-HPT.TextSize = 22
+HPT.TextSize = 20
 HPT.TextXAlignment = Enum.TextXAlignment.Left
 HPT.ZIndex = 103
 HPT.Parent = HP
 
-local HPD = Instance.new("TextLabel")
-HPD.Size = UDim2.new(1,0,0,180)
-HPD.Position = UDim2.new(0,0,0,50)
-HPD.BackgroundTransparency = 1
-HPD.Text = "Modern UI Design\n4 Beautiful Themes\nDrag & Drop Support\nRGB Border Effects\nMobile Compatible\nResizable Window\nSave Settings\n\nUse menu to navigate"
-HPD.TextColor3 = Themes[CT].text
-HPD.Font = Enum.Font.Gotham
-HPD.TextSize = 16
-HPD.TextWrapped = true
-HPD.TextYAlignment = Enum.TextYAlignment.Top
-HPD.TextXAlignment = Enum.TextXAlignment.Left
-HPD.ZIndex = 103
-HPD.Parent = HP
+-- Toggle buttons storage
+local toggleButtons = {}
+
+-- Create toggle function with easier clicking
+local function CreateToggle(parent, text, yPos, category, settingKey)
+	local Container = Instance.new("TextButton")
+	Container.Size = UDim2.new(1,0,0,48)
+	Container.Position = UDim2.new(0,0,0,yPos)
+	Container.BackgroundColor3 = Themes[CT].accent2
+	Container.BorderSizePixel = 0
+	Container.AutoButtonColor = false
+	Container.Text = ""
+	Container.ZIndex = 103
+	Container.Parent = parent
+	
+	Instance.new("UICorner",Container).CornerRadius = UDim.new(0,10)
+	
+	local Label = Instance.new("TextLabel")
+	Label.Size = UDim2.new(1,-70,1,0)
+	Label.Position = UDim2.new(0,12,0,0)
+	Label.BackgroundTransparency = 1
+	Label.Text = text
+	Label.TextColor3 = Themes[CT].text
+	Label.Font = Enum.Font.GothamBold
+	Label.TextSize = 15
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.ZIndex = 104
+	Label.Parent = Container
+	
+	-- Toggle background - clickable
+	local ToggleBG = Instance.new("TextButton")
+	ToggleBG.Size = UDim2.new(0,52,0,28)
+	ToggleBG.Position = UDim2.new(1,-58,0.5,-14)
+	ToggleBG.BackgroundColor3 = Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)
+	ToggleBG.BorderSizePixel = 0
+	ToggleBG.AutoButtonColor = false
+	ToggleBG.Text = ""
+	ToggleBG.ZIndex = 104
+	ToggleBG.Parent = Container
+	
+	Instance.new("UICorner",ToggleBG).CornerRadius = UDim.new(1,0)
+	
+	-- Toggle circle indicator
+	local ToggleCircle = Instance.new("Frame")
+	ToggleCircle.Size = UDim2.new(0,22,0,22)
+	ToggleCircle.Position = Settings[category][settingKey] and UDim2.new(1,-25,0.5,-11) or UDim2.new(0,3,0.5,-11)
+	ToggleCircle.BackgroundColor3 = Color3.fromRGB(255,255,255)
+	ToggleCircle.BorderSizePixel = 0
+	ToggleCircle.ZIndex = 105
+	ToggleCircle.Parent = ToggleBG
+	
+	Instance.new("UICorner",ToggleCircle).CornerRadius = UDim.new(1,0)
+	
+	-- Toggle function
+	local function toggleState()
+		Settings[category][settingKey] = not Settings[category][settingKey]
+		
+		local newPos = Settings[category][settingKey] and UDim2.new(1,-25,0.5,-11) or UDim2.new(0,3,0.5,-11)
+		local newColor = Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)
+		
+		TS:Create(ToggleCircle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Position = newPos}):Play()
+		TS:Create(ToggleBG, TweenInfo.new(0.2), {BackgroundColor3 = newColor}):Play()
+		
+		SaveSettings()
+		ShowNotification(text .. " " .. (Settings[category][settingKey] and "enabled ✅" or "disabled ❌"))
+		
+		-- Execute functionality based on setting
+		if category == "Farm" then
+			if settingKey == "FarmLv" then
+				_G.FarmLvEnabled = Settings[category][settingKey]
+				print("🎯 Farm Level:", _G.FarmLvEnabled and "ON" or "OFF")
+			elseif settingKey == "AttackPlayer" then
+				_G.AttackPlayerEnabled = Settings[category][settingKey]
+				print("⚔️ Attack Player:", _G.AttackPlayerEnabled and "ON" or "OFF")
+			elseif settingKey == "AttackMobNearest" then
+				_G.AttackMobEnabled = Settings[category][settingKey]
+				print("👹 Attack Mob Nearest:", _G.AttackMobEnabled and "ON" or "OFF")
+			end
+		elseif category == "FarmSettings" then
+			if settingKey == "BringMob" then
+				_G.BringMobEnabled = Settings[category][settingKey]
+				print("🔄 Bring Mob:", _G.BringMobEnabled and "ON" or "OFF")
+			elseif settingKey == "AutoAttack" then
+				_G.AutoAttackEnabled = Settings[category][settingKey]
+				print("⚡ Auto Attack:", _G.AutoAttackEnabled and "ON" or "OFF")
+			end
+		end
+	end
+	
+	-- Click on entire container OR toggle button
+	Container.MouseButton1Click:Connect(toggleState)
+	ToggleBG.MouseButton1Click:Connect(function(e)
+		e:Disconnect() -- Prevent double trigger
+	end)
+	
+	-- Hover effects
+	Container.MouseEnter:Connect(function()
+		TS:Create(Container, TweenInfo.new(0.12), {
+			BackgroundColor3 = Color3.new(
+				math.min(Themes[CT].accent2.R*1.12,1),
+				math.min(Themes[CT].accent2.G*1.12,1),
+				math.min(Themes[CT].accent2.B*1.12,1)
+			)
+		}):Play()
+	end)
+	
+	Container.MouseLeave:Connect(function()
+		TS:Create(Container, TweenInfo.new(0.12), {BackgroundColor3 = Themes[CT].accent2}):Play()
+	end)
+	
+	ToggleBG.MouseEnter:Connect(function()
+		TS:Create(ToggleBG, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.new(
+				math.min((Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)).R*1.15,1),
+				math.min((Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)).G*1.15,1),
+				math.min((Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)).B*1.15,1)
+			)
+		}):Play()
+	end)
+	
+	ToggleBG.MouseLeave:Connect(function()
+		TS:Create(ToggleBG, TweenInfo.new(0.1), {
+			BackgroundColor3 = Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)
+		}):Play()
+	end)
+	
+	table.insert(toggleButtons, {container = Container, label = Label, toggleBG = ToggleBG, toggleCircle = ToggleCircle})
+	return Container
+end
+
+-- Farm toggles
+CreateToggle(HP, "🎯 Farm Level", 45, "Farm", "FarmLv")
+CreateToggle(HP, "⚔️ Attack Player", 103, "Farm", "AttackPlayer")
+CreateToggle(HP, "👹 Attack Mob Nearest", 161, "Farm", "AttackMobNearest")
 
 -- Settings page
 local SP = Instance.new("Frame")
@@ -274,20 +443,37 @@ SP.ZIndex = 102
 SP.Parent = CA
 
 local SPT = Instance.new("TextLabel")
-SPT.Size = UDim2.new(1,0,0,40)
+SPT.Size = UDim2.new(1,0,0,35)
 SPT.BackgroundTransparency = 1
-SPT.Text = "Settings"
+SPT.Text = "⚙️ Farm Settings"
 SPT.TextColor3 = Themes[CT].text
 SPT.Font = Enum.Font.GothamBold
-SPT.TextSize = 22
+SPT.TextSize = 20
 SPT.TextXAlignment = Enum.TextXAlignment.Left
 SPT.ZIndex = 103
 SPT.Parent = SP
 
+-- Farm settings toggles
+CreateToggle(SP, "🔄 Bring Mob", 45, "FarmSettings", "BringMob")
+CreateToggle(SP, "⚡ Auto Attack", 103, "FarmSettings", "AutoAttack")
+
+-- Theme section
+local ThemeTitle = Instance.new("TextLabel")
+ThemeTitle.Size = UDim2.new(1,0,0,35)
+ThemeTitle.Position = UDim2.new(0,0,0,170)
+ThemeTitle.BackgroundTransparency = 1
+ThemeTitle.Text = "🎨 Theme Selection"
+ThemeTitle.TextColor3 = Themes[CT].text
+ThemeTitle.Font = Enum.Font.GothamBold
+ThemeTitle.TextSize = 20
+ThemeTitle.TextXAlignment = Enum.TextXAlignment.Left
+ThemeTitle.ZIndex = 103
+ThemeTitle.Parent = SP
+
 -- Theme dropdown
 local TDD = Instance.new("TextButton")
-TDD.Size = UDim2.new(1,0,0,45)
-TDD.Position = UDim2.new(0,0,0,50)
+TDD.Size = UDim2.new(1,0,0,48)
+TDD.Position = UDim2.new(0,0,0,215)
 TDD.BackgroundColor3 = Themes[CT].accent2
 TDD.Text = ""
 TDD.BorderSizePixel = 0
@@ -295,16 +481,16 @@ TDD.AutoButtonColor = false
 TDD.ZIndex = 103
 TDD.Parent = SP
 
-Instance.new("UICorner",TDD).CornerRadius = UDim.new(0,12)
+Instance.new("UICorner",TDD).CornerRadius = UDim.new(0,10)
 
 local TDDL = Instance.new("TextLabel")
-TDDL.Size = UDim2.new(1,-60,1,0)
-TDDL.Position = UDim2.new(0,15,0,0)
+TDDL.Size = UDim2.new(1,-50,1,0)
+TDDL.Position = UDim2.new(0,12,0,0)
 TDDL.BackgroundTransparency = 1
-TDDL.Text = "Theme Selection"
+TDDL.Text = "Current: " .. CT
 TDDL.TextColor3 = Themes[CT].text
 TDDL.Font = Enum.Font.GothamBold
-TDDL.TextSize = 16
+TDDL.TextSize = 15
 TDDL.TextXAlignment = Enum.TextXAlignment.Left
 TDDL.ZIndex = 104
 TDDL.Parent = TDD
@@ -323,7 +509,7 @@ TDDA.Parent = TDD
 -- Theme list
 local TL = Instance.new("Frame")
 TL.Size = UDim2.new(1,0,0,0)
-TL.Position = UDim2.new(0,0,0,105)
+TL.Position = UDim2.new(0,0,0,273)
 TL.BackgroundTransparency = 1
 TL.ClipsDescendants = true
 TL.Visible = false
@@ -342,24 +528,24 @@ MP.ZIndex = 102
 MP.Parent = CA
 
 local MPT = Instance.new("TextLabel")
-MPT.Size = UDim2.new(1,0,0,40)
+MPT.Size = UDim2.new(1,0,0,35)
 MPT.BackgroundTransparency = 1
-MPT.Text = "More Options"
+MPT.Text = "📦 More Options"
 MPT.TextColor3 = Themes[CT].text
 MPT.Font = Enum.Font.GothamBold
-MPT.TextSize = 22
+MPT.TextSize = 20
 MPT.TextXAlignment = Enum.TextXAlignment.Left
 MPT.ZIndex = 103
 MPT.Parent = MP
 
 local MPD = Instance.new("TextLabel")
-MPD.Size = UDim2.new(1,0,0,120)
-MPD.Position = UDim2.new(0,0,0,50)
+MPD.Size = UDim2.new(1,0,0,100)
+MPD.Position = UDim2.new(0,0,0,45)
 MPD.BackgroundTransparency = 1
-MPD.Text = "Additional Features\n\n• Advanced Settings\n• Export/Import Config\n• Keybinds Manager\n• Plugin Support"
+MPD.Text = "🚀 Coming Soon!\n\n• Advanced Settings\n• Keybinds Manager\n• Plugin Support"
 MPD.TextColor3 = Themes[CT].text
 MPD.Font = Enum.Font.Gotham
-MPD.TextSize = 16
+MPD.TextSize = 15
 MPD.TextWrapped = true
 MPD.TextYAlignment = Enum.TextYAlignment.Top
 MPD.TextXAlignment = Enum.TextXAlignment.Left
@@ -368,272 +554,22 @@ MPD.Parent = MP
 
 -- Credit
 local Credit = Instance.new("TextLabel")
-Credit.Size = UDim2.new(1,-155,0,30)
-Credit.Position = UDim2.new(0,145,1,-35)
+Credit.Size = UDim2.new(1,-170,0,30)
+Credit.Position = UDim2.new(0,160,1,-35)
 Credit.BackgroundTransparency = 1
 Credit.Text = "UI by tru897tr"
 Credit.Font = Enum.Font.GothamBold
-Credit.TextSize = 14
-Credit.TextTransparency = 0.4
+Credit.TextSize = 13
+Credit.TextTransparency = 0.5
 Credit.TextColor3 = Themes[CT].text
 Credit.TextXAlignment = Enum.TextXAlignment.Right
 Credit.ZIndex = 101
 Credit.Parent = MF
 
 -- Notification system
-local NotificationContainer = Instance.new("Frame")
-NotificationContainer.Size = UDim2.new(0, 280, 1, -20)
-NotificationContainer.Position = UDim2.new(1, -290, 0, 10)
-NotificationContainer.BackgroundTransparency = 1
-NotificationContainer.ZIndex = 500
-NotificationContainer.Parent = G
-
-local activeNotifications = {}
-local maxNotifications = 3
-
-local function CreateNotification(message, duration)
-	duration = duration or 5
-	
-	-- Remove oldest notification if limit exceeded
-	if #activeNotifications >= maxNotifications then
-		local oldest = table.remove(activeNotifications, 1)
-		if oldest and oldest.Parent then
-			local fadeOut = TS:Create(oldest, TweenInfo.new(0.2), {
-				Position = UDim2.new(1, 20, 0, oldest.Position.Y.Offset),
-				BackgroundTransparency = 1
-			})
-			fadeOut:Play()
-			fadeOut.Completed:Connect(function()
-				oldest:Destroy()
-			end)
-			-- Update positions of remaining notifications
-			task.wait(0.1)
-			for i, notif in ipairs(activeNotifications) do
-				TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-					Position = UDim2.new(0, 0, 0, (i-1) * 72)
-				}):Play()
-			end
-		end
-	end
-	
-	-- Create notification button (clickable)
-	local Notif = Instance.new("TextButton")
-	Notif.Size = UDim2.new(1, 0, 0, 65)
-	Notif.Position = UDim2.new(1, 20, 0, #activeNotifications * 72)
-	Notif.BackgroundColor3 = Themes[CT].accent2
-	Notif.BorderSizePixel = 0
-	Notif.AutoButtonColor = false
-	Notif.Text = ""
-	Notif.ClipsDescendants = true
-	Notif.ZIndex = 501
-	Notif.Parent = NotificationContainer
-	
-	Instance.new("UICorner", Notif).CornerRadius = UDim.new(0, 10)
-	
-	-- Gradient background
-	local Gradient = Instance.new("UIGradient")
-	Gradient.Color = ColorSequence.new{
-		ColorSequenceKeypoint.new(0, Themes[CT].accent2),
-		ColorSequenceKeypoint.new(1, Color3.new(
-			math.min(Themes[CT].accent2.R * 1.15, 1),
-			math.min(Themes[CT].accent2.G * 1.15, 1),
-			math.min(Themes[CT].accent2.B * 1.15, 1)
-		))
-	}
-	Gradient.Rotation = 45
-	Gradient.Parent = Notif
-	
-	-- Glowing border
-	local NotifStroke = Instance.new("UIStroke")
-	NotifStroke.Thickness = 1.5
-	NotifStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	NotifStroke.Parent = Notif
-	
-	-- Animate border color
-	task.spawn(function()
-		while Notif and Notif.Parent do
-			for i = 0, 1, 0.02 do
-				if not Notif or not Notif.Parent then break end
-				pcall(function()
-					NotifStroke.Color = Color3.fromHSV(i, 0.6, 1)
-				end)
-				task.wait(0.05)
-			end
-		end
-	end)
-	
-	-- Icon container
-	local IconBg = Instance.new("Frame")
-	IconBg.Size = UDim2.new(0, 40, 0, 40)
-	IconBg.Position = UDim2.new(0, 8, 0.5, -20)
-	IconBg.BackgroundColor3 = Themes[CT].accent
-	IconBg.BorderSizePixel = 0
-	IconBg.ZIndex = 502
-	IconBg.Parent = Notif
-	
-	Instance.new("UICorner", IconBg).CornerRadius = UDim.new(0.3, 0)
-	
-	-- Icon
-	local Icon = Instance.new("TextLabel")
-	Icon.Size = UDim2.new(1, 0, 1, 0)
-	Icon.BackgroundTransparency = 1
-	Icon.Text = "✨"
-	Icon.TextColor3 = Themes[CT].text
-	Icon.Font = Enum.Font.GothamBold
-	Icon.TextSize = 22
-	Icon.ZIndex = 503
-	Icon.Parent = IconBg
-	
-	-- Message
-	local Msg = Instance.new("TextLabel")
-	Msg.Size = UDim2.new(1, -65, 1, -20)
-	Msg.Position = UDim2.new(0, 55, 0, 5)
-	Msg.BackgroundTransparency = 1
-	Msg.Text = message
-	Msg.TextColor3 = Themes[CT].text
-	Msg.Font = Enum.Font.Gotham
-	Msg.TextSize = 13
-	Msg.TextWrapped = true
-	Msg.TextXAlignment = Enum.TextXAlignment.Left
-	Msg.TextYAlignment = Enum.TextYAlignment.Top
-	Msg.ZIndex = 502
-	Msg.Parent = Notif
-	
-	-- Close button (X)
-	local CloseBtn = Instance.new("TextButton")
-	CloseBtn.Size = UDim2.new(0, 20, 0, 20)
-	CloseBtn.Position = UDim2.new(1, -25, 0, 5)
-	CloseBtn.BackgroundTransparency = 0.3
-	CloseBtn.BackgroundColor3 = Themes[CT].accent
-	CloseBtn.Text = "×"
-	CloseBtn.TextColor3 = Themes[CT].text
-	CloseBtn.Font = Enum.Font.GothamBold
-	CloseBtn.TextSize = 16
-	CloseBtn.BorderSizePixel = 0
-	CloseBtn.AutoButtonColor = false
-	CloseBtn.ZIndex = 504
-	CloseBtn.Parent = Notif
-	
-	Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0.3, 0)
-	
-	-- Progress bar background
-	local ProgressBg = Instance.new("Frame")
-	ProgressBg.Size = UDim2.new(1, -16, 0, 2.5)
-	ProgressBg.Position = UDim2.new(0, 8, 1, -7)
-	ProgressBg.BackgroundColor3 = Themes[CT].accent
-	ProgressBg.BackgroundTransparency = 0.5
-	ProgressBg.BorderSizePixel = 0
-	ProgressBg.ZIndex = 502
-	ProgressBg.Parent = Notif
-	
-	Instance.new("UICorner", ProgressBg).CornerRadius = UDim.new(1, 0)
-	
-	-- Progress bar
-	local Progress = Instance.new("Frame")
-	Progress.Size = UDim2.new(1, 0, 1, 0)
-	Progress.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
-	Progress.BorderSizePixel = 0
-	Progress.ZIndex = 503
-	Progress.Parent = ProgressBg
-	
-	Instance.new("UICorner", Progress).CornerRadius = UDim.new(1, 0)
-	
-	-- Add to active list
-	table.insert(activeNotifications, Notif)
-	table.insert(activeNotifications, Notif)
-	
-	-- Slide in animation with bounce
-	local slideIn = TS:Create(Notif, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Position = UDim2.new(0, 0, 0, (#activeNotifications - 1) * 72)
-	})
-	slideIn:Play()
-	
-	-- Progress bar animation
-	local progressTween = TS:Create(Progress, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
-		Size = UDim2.new(0, 0, 1, 0)
-	})
-	progressTween:Play()
-	
-	-- Remove notification function
-	local function removeNotification()
-		if not Notif or not Notif.Parent then return end
-		
-		-- Stop progress animation
-		progressTween:Cancel()
-		
-		-- Remove from active list
-		for i, notif in ipairs(activeNotifications) do
-			if notif == Notif then
-				table.remove(activeNotifications, i)
-				break
-			end
-		end
-		
-		-- Slide out animation
-		local slideOut = TS:Create(Notif, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			Position = UDim2.new(1, 20, 0, Notif.Position.Y.Offset),
-			BackgroundTransparency = 1
-		})
-		slideOut:Play()
-		slideOut.Completed:Connect(function()
-			Notif:Destroy()
-			
-			-- Update positions of remaining notifications
-			for i, notif in ipairs(activeNotifications) do
-				TS:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-					Position = UDim2.new(0, 0, 0, (i-1) * 72)
-				}):Play()
-			end
-		end)
-	end
-	
-	-- Click to close
-	Notif.MouseButton1Click:Connect(removeNotification)
-	CloseBtn.MouseButton1Click:Connect(removeNotification)
-	
-	-- Hover effect
-	Notif.MouseEnter:Connect(function()
-		TS:Create(Notif, TweenInfo.new(0.15), {
-			Size = UDim2.new(1, 5, 0, 65),
-			BackgroundColor3 = Color3.new(
-				math.min(Themes[CT].accent2.R * 1.1, 1),
-				math.min(Themes[CT].accent2.G * 1.1, 1),
-				math.min(Themes[CT].accent2.B * 1.1, 1)
-			)
-		}):Play()
-	end)
-	
-	Notif.MouseLeave:Connect(function()
-		TS:Create(Notif, TweenInfo.new(0.15), {
-			Size = UDim2.new(1, 0, 0, 65),
-			BackgroundColor3 = Themes[CT].accent2
-		}):Play()
-	end)
-	
-	CloseBtn.MouseEnter:Connect(function()
-		TS:Create(CloseBtn, TweenInfo.new(0.1), {
-			BackgroundColor3 = Color3.fromRGB(255, 70, 70),
-			BackgroundTransparency = 0
-		}):Play()
-	end)
-	
-	CloseBtn.MouseLeave:Connect(function()
-		TS:Create(CloseBtn, TweenInfo.new(0.1), {
-			BackgroundColor3 = Themes[CT].accent,
-			BackgroundTransparency = 0.3
-		}):Play()
-	end)
-	
-	-- Auto remove after duration
-	task.delay(duration, removeNotification)
-	
-	return Notif
-end
-
--- Simple Notification System
 local NotifContainer = Instance.new("Frame")
-NotifContainer.Size = UDim2.new(0, 300, 0, 230)
-NotifContainer.Position = UDim2.new(1, -310, 0, 10)
+NotifContainer.Size = UDim2.new(0,280,1,-20)
+NotifContainer.Position = UDim2.new(1,-290,0,10)
 NotifContainer.BackgroundTransparency = 1
 NotifContainer.ZIndex = 600
 NotifContainer.Parent = G
@@ -641,25 +577,22 @@ NotifContainer.Parent = G
 local notifs = {}
 local MAX_NOTIFS = 3
 
-local function ShowNotification(msg)
-	-- Remove oldest if at max
+function ShowNotification(msg)
 	if #notifs >= MAX_NOTIFS then
 		local old = table.remove(notifs, 1)
 		if old then
 			TS:Create(old, TweenInfo.new(0.2), {Position = UDim2.new(1.2, 0, 0, old.Position.Y.Offset)}):Play()
 			task.delay(0.25, function() if old then old:Destroy() end end)
 			task.wait(0.15)
-			-- Move remaining down
 			for i, n in ipairs(notifs) do
-				TS:Create(n, TweenInfo.new(0.2), {Position = UDim2.new(0, 0, 0, (i-1) * 75)}):Play()
+				TS:Create(n, TweenInfo.new(0.2), {Position = UDim2.new(0, 0, 0, (i-1) * 72)}):Play()
 			end
 		end
 	end
 	
-	-- Create new notification (as button for click)
 	local N = Instance.new("TextButton")
-	N.Size = UDim2.new(1, 0, 0, 70)
-	N.Position = UDim2.new(1.2, 0, 0, #notifs * 75)
+	N.Size = UDim2.new(1, 0, 0, 65)
+	N.Position = UDim2.new(1.2, 0, 0, #notifs * 72)
 	N.BackgroundColor3 = Themes[CT].accent2
 	N.BorderSizePixel = 0
 	N.AutoButtonColor = false
@@ -669,13 +602,12 @@ local function ShowNotification(msg)
 	
 	Instance.new("UICorner", N).CornerRadius = UDim.new(0, 10)
 	
-	-- RGB border synced with main GUI
 	local S = Instance.new("UIStroke")
 	S.Thickness = 2
 	S.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	S.Parent = N
 	
-	local rgbConn = game:GetService("RunService").Heartbeat:Connect(function()
+	local rgbConn = RunService.Heartbeat:Connect(function()
 		if MFS and N and N.Parent then
 			S.Color = MFS.Color
 		end
@@ -683,22 +615,20 @@ local function ShowNotification(msg)
 	
 	N.Destroying:Connect(function() if rgbConn then rgbConn:Disconnect() end end)
 	
-	-- Icon
 	local I = Instance.new("TextLabel")
-	I.Size = UDim2.new(0, 50, 1, -10)
-	I.Position = UDim2.new(0, 0, 0, 0)
+	I.Size = UDim2.new(0, 45, 1, -10)
+	I.Position = UDim2.new(0, 5, 0, 0)
 	I.BackgroundTransparency = 1
 	I.Text = "✨"
 	I.TextColor3 = Themes[CT].text
 	I.Font = Enum.Font.GothamBold
-	I.TextSize = 26
+	I.TextSize = 24
 	I.ZIndex = 602
 	I.Parent = N
 	
-	-- Message
 	local M = Instance.new("TextLabel")
-	M.Size = UDim2.new(1, -60, 1, -20)
-	M.Position = UDim2.new(0, 55, 0, 5)
+	M.Size = UDim2.new(1, -55, 1, -18)
+	M.Position = UDim2.new(0, 50, 0, 5)
 	M.BackgroundTransparency = 1
 	M.Text = msg
 	M.TextColor3 = Themes[CT].text
@@ -710,10 +640,9 @@ local function ShowNotification(msg)
 	M.ZIndex = 602
 	M.Parent = N
 	
-	-- Progress bar background
 	local PBG = Instance.new("Frame")
-	PBG.Size = UDim2.new(1, -20, 0, 3)
-	PBG.Position = UDim2.new(0, 10, 1, -8)
+	PBG.Size = UDim2.new(1, -16, 0, 3)
+	PBG.Position = UDim2.new(0, 8, 1, -7)
 	PBG.BackgroundColor3 = Themes[CT].accent
 	PBG.BackgroundTransparency = 0.5
 	PBG.BorderSizePixel = 0
@@ -722,7 +651,6 @@ local function ShowNotification(msg)
 	
 	Instance.new("UICorner", PBG).CornerRadius = UDim.new(1, 0)
 	
-	-- Progress bar
 	local PB = Instance.new("Frame")
 	PB.Size = UDim2.new(1, 0, 1, 0)
 	PB.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
@@ -732,30 +660,21 @@ local function ShowNotification(msg)
 	
 	Instance.new("UICorner", PB).CornerRadius = UDim.new(1, 0)
 	
-	-- Add to list
 	table.insert(notifs, N)
 	
-	-- Slide in
 	TS:Create(N, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Position = UDim2.new(0, 0, 0, (#notifs - 1) * 75)
+		Position = UDim2.new(0, 0, 0, (#notifs - 1) * 72)
 	}):Play()
 	
-	-- Progress bar countdown animation
 	local progressTween = TS:Create(PB, TweenInfo.new(4, Enum.EasingStyle.Linear), {
 		Size = UDim2.new(0, 0, 1, 0)
 	})
 	progressTween:Play()
 	
-	-- Remove notification function
 	local function removeNotif()
 		if not N or not N.Parent then return end
+		if progressTween then progressTween:Cancel() end
 		
-		-- Cancel progress
-		if progressTween then
-			progressTween:Cancel()
-		end
-		
-		-- Remove from list
 		for i, n in ipairs(notifs) do
 			if n == N then
 				table.remove(notifs, i)
@@ -763,35 +682,30 @@ local function ShowNotification(msg)
 			end
 		end
 		
-		-- Slide out
 		TS:Create(N, TweenInfo.new(0.2), {Position = UDim2.new(1.2, 0, 0, N.Position.Y.Offset)}):Play()
 		task.delay(0.25, function() if N then N:Destroy() end end)
 		
-		-- Move remaining up
 		for i, n in ipairs(notifs) do
-			TS:Create(n, TweenInfo.new(0.2), {Position = UDim2.new(0, 0, 0, (i-1) * 75)}):Play()
+			TS:Create(n, TweenInfo.new(0.2), {Position = UDim2.new(0, 0, 0, (i-1) * 72)}):Play()
 		end
 	end
 	
-	-- Click to close
 	N.MouseButton1Click:Connect(removeNotif)
 	
-	-- Hover effect
 	N.MouseEnter:Connect(function()
-		TS:Create(N, TweenInfo.new(0.15), {Size = UDim2.new(1, 5, 0, 70)}):Play()
+		TS:Create(N, TweenInfo.new(0.12), {Size = UDim2.new(1, 5, 0, 65)}):Play()
 	end)
 	
 	N.MouseLeave:Connect(function()
-		TS:Create(N, TweenInfo.new(0.15), {Size = UDim2.new(1, 0, 0, 70)}):Play()
+		TS:Create(N, TweenInfo.new(0.12), {Size = UDim2.new(1, 0, 0, 65)}):Play()
 	end)
 	
-	-- Auto remove after 4 seconds
 	task.delay(4, removeNotif)
 end
 
 -- Confirm dialog
 local CF = Instance.new("Frame")
-CF.Size = UDim2.new(0,380,0,190)
+CF.Size = UDim2.new(0,360,0,180)
 CF.Position = UDim2.new(0.5,0,0.5,0)
 CF.AnchorPoint = Vector2.new(0.5,0.5)
 CF.BackgroundColor3 = Themes[CT].bg
@@ -807,36 +721,36 @@ CFS.Color = Color3.fromRGB(255,50,50)
 CFS.Parent = CF
 
 local CFT = Instance.new("TextLabel")
-CFT.Size = UDim2.new(1,-40,0,55)
-CFT.Position = UDim2.new(0,20,0,20)
+CFT.Size = UDim2.new(1,-40,0,50)
+CFT.Position = UDim2.new(0,20,0,15)
 CFT.BackgroundTransparency = 1
 CFT.Text = "Close Script?"
 CFT.TextColor3 = Themes[CT].text
 CFT.Font = Enum.Font.GothamBold
-CFT.TextSize = 22
+CFT.TextSize = 20
 CFT.ZIndex = 301
 CFT.Parent = CF
 
 local CFD = Instance.new("TextLabel")
-CFD.Size = UDim2.new(1,-40,0,45)
-CFD.Position = UDim2.new(0,20,0,75)
+CFD.Size = UDim2.new(1,-40,0,40)
+CFD.Position = UDim2.new(0,20,0,65)
 CFD.BackgroundTransparency = 1
-CFD.Text = "Script will be completely closed.\nAre you sure?"
+CFD.Text = "Script will be closed.\nAre you sure?"
 CFD.TextColor3 = Themes[CT].text
 CFD.Font = Enum.Font.Gotham
-CFD.TextSize = 15
+CFD.TextSize = 14
 CFD.TextWrapped = true
 CFD.ZIndex = 301
 CFD.Parent = CF
 
 local YB = Instance.new("TextButton")
-YB.Size = UDim2.new(0,160,0,42)
-YB.Position = UDim2.new(0,20,1,-55)
+YB.Size = UDim2.new(0,150,0,40)
+YB.Position = UDim2.new(0,20,1,-50)
 YB.BackgroundColor3 = Color3.fromRGB(255,50,50)
 YB.Text = "Yes"
 YB.TextColor3 = Color3.new(1,1,1)
 YB.Font = Enum.Font.GothamBold
-YB.TextSize = 17
+YB.TextSize = 16
 YB.BorderSizePixel = 0
 YB.AutoButtonColor = false
 YB.ZIndex = 302
@@ -845,13 +759,13 @@ YB.Parent = CF
 Instance.new("UICorner",YB).CornerRadius = UDim.new(0,10)
 
 local NB = Instance.new("TextButton")
-NB.Size = UDim2.new(0,160,0,42)
-NB.Position = UDim2.new(1,-180,1,-55)
+NB.Size = UDim2.new(0,150,0,40)
+NB.Position = UDim2.new(1,-170,1,-50)
 NB.BackgroundColor3 = Themes[CT].accent
 NB.Text = "No"
 NB.TextColor3 = Themes[CT].text
 NB.Font = Enum.Font.GothamBold
-NB.TextSize = 17
+NB.TextSize = 16
 NB.BorderSizePixel = 0
 NB.AutoButtonColor = false
 NB.ZIndex = 302
@@ -859,7 +773,7 @@ NB.Parent = CF
 
 Instance.new("UICorner",NB).CornerRadius = UDim.new(0,10)
 
--- Page objects reference
+-- Page objects
 local Pages = {
 	Home = HP,
 	Settings = SP,
@@ -870,8 +784,8 @@ local Pages = {
 local menuBtns = {}
 local function createMenu(name, icon, pos)
 	local B = Instance.new("TextButton")
-	B.Size = UDim2.new(1,-14,0,40)
-	B.Position = UDim2.new(0,7,0,7+pos*48)
+	B.Size = UDim2.new(1,-14,0,42)
+	B.Position = UDim2.new(0,7,0,7+pos*50)
 	B.BackgroundColor3 = Themes[CT].accent
 	B.BackgroundTransparency = (CP==name) and 0 or 1
 	B.Text = ""
@@ -888,7 +802,7 @@ local function createMenu(name, icon, pos)
 	L.Text = icon.." "..name
 	L.TextColor3 = Themes[CT].text
 	L.Font = Enum.Font.GothamBold
-	L.TextSize = 15
+	L.TextSize = 14
 	L.ZIndex = 103
 	L.Parent = B
 	
@@ -904,8 +818,8 @@ createMenu("More","📦",2)
 local themeBtns = {}
 for i,n in ipairs({"Dark","Light","Green","Purple"}) do
 	local B = Instance.new("TextButton")
-	B.Size = UDim2.new(1,0,0,52)
-	B.Position = UDim2.new(0,0,0,(i-1)*58)
+	B.Size = UDim2.new(1,0,0,48)
+	B.Position = UDim2.new(0,0,0,(i-1)*54)
 	B.BackgroundColor3 = Themes[n].bg
 	B.Text = ""
 	B.BorderSizePixel = 0
@@ -913,7 +827,7 @@ for i,n in ipairs({"Dark","Light","Green","Purple"}) do
 	B.ZIndex = 104
 	B.Parent = TL
 	
-	Instance.new("UICorner",B).CornerRadius = UDim.new(0,11)
+	Instance.new("UICorner",B).CornerRadius = UDim.new(0,10)
 	
 	local L = Instance.new("TextLabel")
 	L.Size = UDim2.new(1,-20,1,0)
@@ -922,7 +836,7 @@ for i,n in ipairs({"Dark","Light","Green","Purple"}) do
 	L.Text = n
 	L.TextColor3 = Themes[n].text
 	L.Font = Enum.Font.GothamBold
-	L.TextSize = 17
+	L.TextSize = 16
 	L.TextXAlignment = Enum.TextXAlignment.Left
 	L.ZIndex = 105
 	L.Parent = B
@@ -930,27 +844,21 @@ for i,n in ipairs({"Dark","Light","Green","Purple"}) do
 	themeBtns[n] = B
 end
 
--- Functions
+-- Update theme function
 local function UpdateTheme(t)
 	if t == CT then return end
-	
-	-- Store old theme for transition
-	local oldTheme = CT
 	CT = t
 	
-	-- Smooth color transition for all elements
-	local transitionTime = 0.35
-	local tweenInfo = TweenInfo.new(transitionTime, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local tweenTime = 0.3
+	local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 	
-	-- Main frame fade effect
+	-- Main elements
 	TS:Create(MF, tweenInfo, {BackgroundColor3 = Themes[t].bg}):Play()
-	
-	-- Text elements
 	TS:Create(Title, tweenInfo, {TextColor3 = Themes[t].text}):Play()
 	TS:Create(Credit, tweenInfo, {TextColor3 = Themes[t].text}):Play()
 	TS:Create(HPT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
-	TS:Create(HPD, tweenInfo, {TextColor3 = Themes[t].text}):Play()
 	TS:Create(SPT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+	TS:Create(ThemeTitle, tweenInfo, {TextColor3 = Themes[t].text}):Play()
 	TS:Create(MPT, tweenInfo, {TextColor3 = Themes[t].text}):Play()
 	TS:Create(MPD, tweenInfo, {TextColor3 = Themes[t].text}):Play()
 	TS:Create(TDDL, tweenInfo, {TextColor3 = Themes[t].text}):Play()
@@ -983,31 +891,50 @@ local function UpdateTheme(t)
 		end
 	end
 	
-	-- Add a subtle flash effect on theme change
+	-- Toggle buttons
+	for _, toggle in ipairs(toggleButtons) do
+		TS:Create(toggle.container, tweenInfo, {BackgroundColor3 = Themes[t].accent2}):Play()
+		TS:Create(toggle.label, tweenInfo, {TextColor3 = Themes[t].text}):Play()
+		-- Update toggle colors based on current state
+		local category, settingKey
+		for cat, settings in pairs(Settings) do
+			for key, _ in pairs(settings) do
+				if toggle.container.Name == cat..key then
+					category = cat
+					settingKey = key
+					break
+				end
+			end
+		end
+		if category and settingKey then
+			local newColor = Settings[category][settingKey] and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)
+			TS:Create(toggle.toggleBG, tweenInfo, {BackgroundColor3 = newColor}):Play()
+		end
+	end
+	
+	-- Update label
+	TDDL.Text = "Current: " .. t
+	
+	-- Flash effect
 	local flash = Instance.new("Frame")
 	flash.Size = UDim2.new(1, 0, 1, 0)
-	flash.Position = UDim2.new(0, 0, 0, 0)
 	flash.BackgroundColor3 = Themes[t].text
-	flash.BackgroundTransparency = 0.85
+	flash.BackgroundTransparency = 0.9
 	flash.BorderSizePixel = 0
 	flash.ZIndex = 999
 	flash.Parent = MF
 	
-	local flashTween = TS:Create(flash, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+	TS:Create(flash, TweenInfo.new(0.4, Enum.EasingStyle.Quad), {
 		BackgroundTransparency = 1
-	})
-	flashTween:Play()
-	flashTween.Completed:Connect(function()
-		flash:Destroy()
-	end)
+	}):Play()
 	
-	-- Show notification
-	ShowNotification("Theme changed to " .. t)
+	task.delay(0.4, function() flash:Destroy() end)
 	
+	ShowNotification("Theme changed to " .. t .. " 🎨")
 	SaveTheme(t)
 end
 
--- Get page index
+-- Page switching
 local function GetPageIndex(pageName)
 	for i, name in ipairs(PageOrder) do
 		if name == pageName then
@@ -1017,19 +944,14 @@ local function GetPageIndex(pageName)
 	return 1
 end
 
--- Page switch with smooth continuous transition (UP/DOWN)
 local function SwitchPage(targetPage)
-	if isSwitchingPage then return end
-	if CP == targetPage then return end
+	if isSwitchingPage or CP == targetPage then return end
 	
-	-- Close theme dropdown if open
 	if isOpen then
 		isOpen = false
 		TS:Create(TL,TweenInfo.new(0.15),{Size=UDim2.new(1,0,0,0)}):Play()
 		TS:Create(TDDA,TweenInfo.new(0.15),{Rotation=0}):Play()
-		task.delay(0.15, function()
-			TL.Visible = false
-		end)
+		task.delay(0.15, function() TL.Visible = false end)
 	end
 	
 	isSwitchingPage = true
@@ -1041,11 +963,8 @@ local function SwitchPage(targetPage)
 	
 	local currentPageObj = Pages[CP]
 	local targetPageObj = Pages[targetPage]
-	
-	-- Calculate total animation time based on distance
 	local totalTime = 0.2 * distance
 	
-	-- Hide all pages first
 	for _, page in pairs(Pages) do
 		if page ~= currentPageObj then
 			page.Visible = false
@@ -1053,9 +972,7 @@ local function SwitchPage(targetPage)
 		end
 	end
 	
-	-- If moving through middle pages, show them briefly during transition
 	if distance > 1 then
-		-- Show all middle pages in correct positions
 		for i = math.min(currentIndex, targetIndex), math.max(currentIndex, targetIndex) do
 			local pageName = PageOrder[i]
 			local pageObj = Pages[pageName]
@@ -1067,12 +984,10 @@ local function SwitchPage(targetPage)
 		end
 	end
 	
-	-- Prepare target page
 	local startOffset = direction * distance
 	targetPageObj.Position = UDim2.new(0, 0, startOffset, 0)
 	targetPageObj.Visible = true
 	
-	-- Animate all visible pages smoothly
 	for i = math.min(currentIndex, targetIndex), math.max(currentIndex, targetIndex) do
 		local pageName = PageOrder[i]
 		local pageObj = Pages[pageName]
@@ -1085,7 +1000,6 @@ local function SwitchPage(targetPage)
 		
 		if pageObj == targetPageObj then
 			tw.Completed:Connect(function()
-				-- Hide all pages except target
 				for _, page in pairs(Pages) do
 					if page ~= targetPageObj then
 						page.Visible = false
@@ -1098,10 +1012,8 @@ local function SwitchPage(targetPage)
 		end
 	end
 	
-	-- Update current page
 	CP = targetPage
 	
-	-- Update menu buttons with smooth animation
 	for n,d in pairs(menuBtns) do
 		if n==targetPage then
 			TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0}):Play()
@@ -1118,16 +1030,15 @@ local function ToggleTheme()
 	isOpen = not isOpen
 	if isOpen then
 		TL.Visible = true
-		TS:Create(TL,TweenInfo.new(0.3),{Size=UDim2.new(1,0,0,242)}):Play()
-		TS:Create(TDDA,TweenInfo.new(0.3),{Rotation=180}):Play()
+		TS:Create(TL,TweenInfo.new(0.25),{Size=UDim2.new(1,0,0,222)}):Play()
+		TS:Create(TDDA,TweenInfo.new(0.25),{Rotation=180}):Play()
 	else
-		local tw = TS:Create(TL,TweenInfo.new(0.25),{Size=UDim2.new(1,0,0,0)})
-		tw:Play()
-		tw.Completed:Connect(function() TL.Visible=false end)
-		TS:Create(TDDA,TweenInfo.new(0.25),{Rotation=0}):Play()
+		TS:Create(TL,TweenInfo.new(0.2),{Size=UDim2.new(1,0,0,0)}):Play()
+		TS:Create(TDDA,TweenInfo.new(0.2),{Rotation=0}):Play()
+		task.delay(0.2, function() TL.Visible=false end)
 	end
 	
-	task.wait(0.35)
+	task.wait(0.3)
 	isAnimating = false
 end
 
@@ -1137,23 +1048,21 @@ local function ShowFrame()
 	
 	MF.Visible = true
 	MF.Size = UDim2.new(0,0,0,0)
-	local tw = TS:Create(MF,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,600,0,380)})
-	tw:Play()
-	tw.Completed:Connect(function()
-		isAnimating = false
-	end)
+	TS:Create(MF,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,650,0,420)}):Play()
+	
+	task.wait(0.4)
+	isAnimating = false
 end
 
 local function HideFrame()
 	if isAnimating then return end
 	isAnimating = true
 	
-	local tw = TS:Create(MF,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)})
-	tw:Play()
-	tw.Completed:Connect(function() 
-		MF.Visible=false
-		isAnimating = false
-	end)
+	TS:Create(MF,TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()
+	
+	task.wait(0.3)
+	MF.Visible=false
+	isAnimating = false
 end
 
 local function ShowConfirm()
@@ -1162,23 +1071,21 @@ local function ShowConfirm()
 	
 	CF.Visible = true
 	CF.Size = UDim2.new(0,0,0,0)
-	local tw = TS:Create(CF,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,380,0,190)})
-	tw:Play()
-	tw.Completed:Connect(function()
-		isAnimating = false
-	end)
+	TS:Create(CF,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,360,0,180)}):Play()
+	
+	task.wait(0.35)
+	isAnimating = false
 end
 
 local function HideConfirm()
 	if isAnimating then return end
 	isAnimating = true
 	
-	local tw = TS:Create(CF,TweenInfo.new(0.25,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)})
-	tw:Play()
-	tw.Completed:Connect(function() 
-		CF.Visible=false
-		isAnimating = false
-	end)
+	TS:Create(CF,TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()
+	
+	task.wait(0.25)
+	CF.Visible=false
+	isAnimating = false
 end
 
 -- Events
@@ -1199,43 +1106,32 @@ for n,b in pairs(themeBtns) do
 	b.MouseButton1Click:Connect(function() UpdateTheme(n) end)
 end
 
--- Hover effects with spam protection
-local hoverConnections = {}
-
-local function safeHover(obj, hoverTween, leaveTween)
-	if hoverConnections[obj] then return end
-	
-	hoverConnections[obj] = true
-	
-	obj.MouseEnter:Connect(function()
-		hoverTween()
-	end)
-	
-	obj.MouseLeave:Connect(function()
-		leaveTween()
-	end)
+-- Hover effects
+local function safeHover(obj, enter, leave)
+	obj.MouseEnter:Connect(enter)
+	obj.MouseLeave:Connect(leave)
 end
 
 safeHover(TB,
-	function() TS:Create(TB,TweenInfo.new(0.2),{Size=UDim2.new(0,46,0,46)}):Play() end,
-	function() TS:Create(TB,TweenInfo.new(0.2),{Size=UDim2.new(0,42,0,42)}):Play() end
+	function() TS:Create(TB,TweenInfo.new(0.15),{Size=UDim2.new(0,46,0,46)}):Play() end,
+	function() TS:Create(TB,TweenInfo.new(0.15),{Size=UDim2.new(0,42,0,42)}):Play() end
 )
 
 safeHover(CB,
-	function() TS:Create(CB,TweenInfo.new(0.15),{BackgroundColor3=Color3.fromRGB(255,60,60),TextColor3=Color3.new(1,1,1)}):Play() end,
-	function() TS:Create(CB,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,TextColor3=Themes[CT].text}):Play() end
+	function() TS:Create(CB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(255,60,60)}):Play() end,
+	function() TS:Create(CB,TweenInfo.new(0.12),{BackgroundColor3=Themes[CT].accent}):Play() end
 )
 
 for n,d in pairs(menuBtns) do
 	safeHover(d.btn,
 		function()
 			if CP~=n then
-				TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0.5}):Play()
+				TS:Create(d.btn,TweenInfo.new(0.12),{BackgroundColor3=Themes[CT].accent,BackgroundTransparency=0.5}):Play()
 			end
 		end,
 		function()
 			if CP~=n then
-				TS:Create(d.btn,TweenInfo.new(0.15),{BackgroundTransparency=1}):Play()
+				TS:Create(d.btn,TweenInfo.new(0.12),{BackgroundTransparency=1}):Play()
 			end
 		end
 	)
@@ -1244,50 +1140,41 @@ end
 for n,b in pairs(themeBtns) do
 	safeHover(b,
 		function()
-			local bright=Color3.new(
-				math.min(Themes[n].bg.R*1.25,1),
-				math.min(Themes[n].bg.G*1.25,1),
-				math.min(Themes[n].bg.B*1.25,1)
-			)
-			TS:Create(b,TweenInfo.new(0.15),{BackgroundColor3=bright}):Play()
+			TS:Create(b,TweenInfo.new(0.12),{BackgroundColor3=Color3.new(
+				math.min(Themes[n].bg.R*1.2,1),
+				math.min(Themes[n].bg.G*1.2,1),
+				math.min(Themes[n].bg.B*1.2,1)
+			)}):Play()
 		end,
-		function()
-			TS:Create(b,TweenInfo.new(0.15),{BackgroundColor3=Themes[n].bg}):Play()
-		end
+		function() TS:Create(b,TweenInfo.new(0.12),{BackgroundColor3=Themes[n].bg}):Play() end
 	)
 end
 
 safeHover(TDD,
 	function()
-		local bright=Color3.new(
-			math.min(Themes[CT].accent2.R*1.15,1),
-			math.min(Themes[CT].accent2.G*1.15,1),
-			math.min(Themes[CT].accent2.B*1.15,1)
-		)
-		TS:Create(TDD,TweenInfo.new(0.15),{BackgroundColor3=bright}):Play()
+		TS:Create(TDD,TweenInfo.new(0.12),{BackgroundColor3=Color3.new(
+			math.min(Themes[CT].accent2.R*1.12,1),
+			math.min(Themes[CT].accent2.G*1.12,1),
+			math.min(Themes[CT].accent2.B*1.12,1)
+		)}):Play()
 	end,
-	function()
-		TS:Create(TDD,TweenInfo.new(0.15),{BackgroundColor3=Themes[CT].accent2}):Play()
-	end
+	function() TS:Create(TDD,TweenInfo.new(0.12),{BackgroundColor3=Themes[CT].accent2}):Play() end
 )
 
 safeHover(YB,
-	function() TS:Create(YB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(220,40,40)}):Play() end,
-	function() TS:Create(YB,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(255,50,50)}):Play() end
+	function() TS:Create(YB,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(220,40,40)}):Play() end,
+	function() TS:Create(YB,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(255,50,50)}):Play() end
 )
 
 safeHover(NB,
 	function()
-		local bright=Color3.new(
-			math.min(Themes[CT].accent.R*1.2,1),
-			math.min(Themes[CT].accent.G*1.2,1),
-			math.min(Themes[CT].accent.B*1.2,1)
-		)
-		TS:Create(NB,TweenInfo.new(0.12),{BackgroundColor3=bright}):Play()
+		TS:Create(NB,TweenInfo.new(0.1),{BackgroundColor3=Color3.new(
+			math.min(Themes[CT].accent.R*1.15,1),
+			math.min(Themes[CT].accent.G*1.15,1),
+			math.min(Themes[CT].accent.B*1.15,1)
+		)}):Play()
 	end,
-	function()
-		TS:Create(NB,TweenInfo.new(0.12),{BackgroundColor3=Themes[CT].accent}):Play()
-	end
+	function() TS:Create(NB,TweenInfo.new(0.1),{BackgroundColor3=Themes[CT].accent}):Play() end
 )
 
 -- Drag frame
@@ -1310,7 +1197,7 @@ UIS.InputChanged:Connect(function(i)
 	end
 end)
 
--- Drag toggle button
+-- Drag toggle
 local drag2,dragS2,startP2
 TB.InputBegan:Connect(function(i)
 	if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
@@ -1330,10 +1217,10 @@ UIS.InputChanged:Connect(function(i)
 	end
 end)
 
--- Resize from 4 corners
+-- Resize system
 local resizing,resizeType,resizeStart,startSize,startPos
-local minSize=Vector2.new(500,350)
-local maxSize=Vector2.new(900,700)
+local minSize=Vector2.new(550,380)
+local maxSize=Vector2.new(1000,800)
 
 local function startResize(handle,rType)
 	handle.InputBegan:Connect(function(i)
@@ -1388,11 +1275,72 @@ UIS.InputChanged:Connect(function(i)
 	end
 end)
 
-print("✅ Stylish GUI v4 loaded successfully!")
-print("🎨 Current theme:",CT)
-print("💎 Created by tru897tr")
+-- Initialize global variables from loaded settings
+_G.FarmLvEnabled = Settings.Farm.FarmLv
+_G.AttackPlayerEnabled = Settings.Farm.AttackPlayer
+_G.AttackMobEnabled = Settings.Farm.AttackMobNearest
+_G.BringMobEnabled = Settings.FarmSettings.BringMob
+_G.AutoAttackEnabled = Settings.FarmSettings.AutoAttack
 
--- Show welcome notification
+print("✅ Stylish GUI v4 - Fixed & Optimized")
+print("🎨 Theme: "..CT)
+print("💾 Settings: Loaded from file")
+print("📊 Farm Level:", _G.FarmLvEnabled and "ON" or "OFF")
+print("📊 Attack Player:", _G.AttackPlayerEnabled and "ON" or "OFF")
+print("📊 Attack Mob:", _G.AttackMobEnabled and "ON" or "OFF")
+print("📊 Bring Mob:", _G.BringMobEnabled and "ON" or "OFF")
+print("📊 Auto Attack:", _G.AutoAttackEnabled and "ON" or "OFF")
+print("💎 By: tru897tr")
+
 task.delay(0.5, function()
-	ShowNotification("Welcome! Enjoy your experience with this script.")
+	ShowNotification("Welcome! All settings loaded 🚀")
 end)
+
+-- Example usage of the settings in your actual farm code:
+--[[
+-- Farm Level Loop
+task.spawn(function()
+	while wait(0.1) do
+		if _G.FarmLvEnabled then
+			-- Your farm level code here
+			print("Farming level...")
+		end
+	end
+end)
+
+-- Attack Player Loop
+task.spawn(function()
+	while wait(0.1) do
+		if _G.AttackPlayerEnabled then
+			-- Your attack player code here
+			print("Attacking player...")
+		end
+	end
+end)
+
+-- Attack Mob Loop
+task.spawn(function()
+	while wait(0.1) do
+		if _G.AttackMobEnabled then
+			-- Your attack mob code here
+			print("Attacking nearest mob...")
+		end
+	end
+end)
+
+-- Bring Mob Function
+local function BringMob()
+	if _G.BringMobEnabled then
+		-- Your bring mob code here
+		print("Bringing mobs...")
+	end
+end
+
+-- Auto Attack Function
+local function AutoAttack()
+	if _G.AutoAttackEnabled then
+		-- Your auto attack code here
+		print("Auto attacking...")
+	end
+end
+--]]
